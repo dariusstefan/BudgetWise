@@ -5,12 +5,25 @@ import androidx.lifecycle.viewModelScope
 import com.example.budgetwise.data.BudgetRepository
 import com.example.budgetwise.data.model.Transaction
 import com.example.budgetwise.data.model.TransactionType
+import com.example.budgetwise.data.preferences.PreferencesRepository
+import com.example.budgetwise.util.CurrencyInfo
+import com.example.budgetwise.util.EUR_DEFAULT
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
-class AddTransactionViewModel(private val repository: BudgetRepository) : ViewModel() {
+class AddTransactionViewModel(
+    private val repository: BudgetRepository,
+    private val preferencesRepository: PreferencesRepository
+) : ViewModel() {
+
+    val currencySymbol: StateFlow<String> = preferencesRepository.selectedCurrency
+        .map { code -> CurrencyInfo(code, 1.0).symbol }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), EUR_DEFAULT.symbol)
 
     private val _amount = MutableStateFlow("")
     val amount: StateFlow<String> = _amount

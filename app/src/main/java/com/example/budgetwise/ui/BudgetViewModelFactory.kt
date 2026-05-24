@@ -19,7 +19,7 @@ class BudgetViewModelFactory(
         return when {
             modelClass.isAssignableFrom(DashboardViewModel::class.java) -> DashboardViewModel(repository, preferencesRepository) as T
             modelClass.isAssignableFrom(HistoryViewModel::class.java) -> HistoryViewModel(repository, preferencesRepository) as T
-            modelClass.isAssignableFrom(AddTransactionViewModel::class.java) -> AddTransactionViewModel(repository) as T
+            modelClass.isAssignableFrom(AddTransactionViewModel::class.java) -> AddTransactionViewModel(repository, preferencesRepository) as T
             modelClass.isAssignableFrom(SettingsViewModel::class.java) -> SettingsViewModel(repository, preferencesRepository) as T
             modelClass.isAssignableFrom(RecurringViewModel::class.java) -> RecurringViewModel(repository, preferencesRepository) as T
             else -> throw IllegalArgumentException("Unknown ViewModel class")

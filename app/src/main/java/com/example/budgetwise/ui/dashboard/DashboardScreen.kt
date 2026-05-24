@@ -63,12 +63,12 @@ fun DashboardScreen(
             }
 
             item {
-                BalanceCard(summary, currencyInfo.symbol)
+                BalanceCard(summary, currencyInfo)
             }
 
             if (summary.budget > 0) {
                 item {
-                    BudgetProgress(summary.expense, summary.budget, currencyInfo.symbol)
+                    BudgetProgress(summary.expense, summary.budget, currencyInfo)
                 }
             }
 
@@ -109,7 +109,7 @@ fun MonthPicker(
 }
 
 @Composable
-fun BalanceCard(summary: BalanceSummary, symbol: String = "€") {
+fun BalanceCard(summary: BalanceSummary, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
@@ -120,25 +120,25 @@ fun BalanceCard(summary: BalanceSummary, symbol: String = "€") {
         ) {
             Text(text = "Current Balance", style = MaterialTheme.typography.labelLarge)
             Text(
-                text = "%s%.2f".format(symbol, summary.balance),
+                text = "%s%.2f".format(currencyInfo.symbol, summary.balance * currencyInfo.rate),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                SummaryItem("Income", summary.income, IncomeGreen, symbol)
-                SummaryItem("Expenses", summary.expense, ExpenseRed, symbol)
+                SummaryItem("Income", summary.income, IncomeGreen, currencyInfo)
+                SummaryItem("Expenses", summary.expense, ExpenseRed, currencyInfo)
             }
         }
     }
 }
 
 @Composable
-fun SummaryItem(label: String, amount: Double, color: Color, symbol: String = "€") {
+fun SummaryItem(label: String, amount: Double, color: Color, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(text = label, style = MaterialTheme.typography.labelSmall)
         Text(
-            text = "%s%.2f".format(symbol, amount),
+            text = "%s%.2f".format(currencyInfo.symbol, amount * currencyInfo.rate),
             color = color,
             fontWeight = FontWeight.Bold
         )
@@ -146,12 +146,12 @@ fun SummaryItem(label: String, amount: Double, color: Color, symbol: String = "�
 }
 
 @Composable
-fun BudgetProgress(expense: Double, budget: Double, symbol: String = "€") {
+fun BudgetProgress(expense: Double, budget: Double, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
     val progress = (expense / budget).toFloat().coerceIn(0f, 1f)
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(text = "Monthly Budget", style = MaterialTheme.typography.labelMedium)
-            Text(text = "%s%.0f / %s%.0f".format(symbol, expense, symbol, budget), style = MaterialTheme.typography.labelMedium)
+            Text(text = "%s%.0f / %s%.0f".format(currencyInfo.symbol, expense * currencyInfo.rate, currencyInfo.symbol, budget * currencyInfo.rate), style = MaterialTheme.typography.labelMedium)
         }
         Spacer(modifier = Modifier.height(4.dp))
         LinearProgressIndicator(

@@ -29,6 +29,7 @@ fun AddTransactionScreen(
     val category by viewModel.category.collectAsState()
     val type by viewModel.type.collectAsState()
     val date by viewModel.date.collectAsState()
+    val currencySymbol by viewModel.currencySymbol.collectAsState()
 
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -93,6 +94,7 @@ fun AddTransactionScreen(
                 value = amount,
                 onValueChange = { viewModel.onAmountChange(it) },
                 label = { Text("Amount") },
+                prefix = { Text(currencySymbol) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth()
             )

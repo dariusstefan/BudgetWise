@@ -8,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.budgetwise.util.CurrencyInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -17,6 +18,7 @@ fun SettingsScreen(
     val budget by viewModel.currentMonthBudget.collectAsState()
     val currency by viewModel.selectedCurrency.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
+    val currencySymbol = CurrencyInfo(currency, 1.0).symbol
 
     var budgetInput by remember { mutableStateOf("") }
     LaunchedEffect(budget) {
@@ -41,6 +43,7 @@ fun SettingsScreen(
                     value = budgetInput,
                     onValueChange = { budgetInput = it },
                     label = { Text("Set Budget") },
+                    prefix = { Text(currencySymbol) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f)
                 )

@@ -71,6 +71,7 @@ fun RecurringScreen(
                             value = amount,
                             onValueChange = { viewModel.onAmountChange(it) },
                             label = { Text("Amount") },
+                            prefix = { Text(currencyInfo.symbol) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.weight(1f)
                         )

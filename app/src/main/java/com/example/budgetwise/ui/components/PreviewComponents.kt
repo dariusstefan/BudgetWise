@@ -22,7 +22,7 @@ fun BalanceCardPreview() {
                 expense = 750.0,
                 budget = 1000.0
             ),
-            symbol = "€"
+            currencyInfo = EUR_DEFAULT
         )
     }
 }
@@ -31,7 +31,7 @@ fun BalanceCardPreview() {
 @Composable
 fun BudgetProgressPreview() {
     BudgetWiseTheme {
-        BudgetProgress(expense = 750.0, budget = 1000.0, symbol = "€")
+        BudgetProgress(expense = 750.0, budget = 1000.0, currencyInfo = EUR_DEFAULT)
     }
 }
 
