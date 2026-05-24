@@ -6,25 +6,53 @@ import com.example.budgetwise.data.BudgetRepository
 import com.example.budgetwise.data.model.MonthBudget
 import com.example.budgetwise.data.model.Transaction
 import com.example.budgetwise.data.model.TransactionType
+import com.example.budgetwise.data.preferences.PreferencesRepository
+import com.example.budgetwise.util.CurrencyInfo
+import com.example.budgetwise.util.EUR_DEFAULT
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class DashboardViewModel(private val repository: BudgetRepository) : ViewModel() {
+class DashboardViewModel(
+    private val repository: BudgetRepository,
+    private val preferencesRepository: PreferencesRepository
+) : ViewModel() {
 
     private val _selectedMonth = MutableStateFlow(Calendar.getInstance())
     val selectedMonth: StateFlow<Calendar> = _selectedMonth
 
     private val monthFormatter = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
     private val monthIdFormatter = SimpleDateFormat("yyyy-MM", Locale.getDefault())
+
+    private val _currencyInfo = MutableStateFlow(EUR_DEFAULT)
+    val currencyInfo: StateFlow<CurrencyInfo> = _currencyInfo
+
+    init {
+        viewModelScope.launch {
+            preferencesRepository.selectedCurrency.collect { currency ->
+                val rate = if (currency == "EUR") {
+                    1.0
+                } else {
+                    try {
+                        val response = repository.getExchangeRates("EUR")
+                        response.rates[currency] ?: 1.0
+                    } catch (e: Exception) {
+                        1.0
+                    }
+                }
+                _currencyInfo.value = CurrencyInfo(currency, rate)
+            }
+        }
+    }
 
     val selectedMonthText: StateFlow<String> = combine(_selectedMonth) { (calendar) ->
         monthFormatter.format(calendar.time)
@@ -47,13 +75,21 @@ class DashboardViewModel(private val repository: BudgetRepository) : ViewModel()
     val balanceSummary = combine(
         transactionsForSelectedMonth,
         monthBudget,
-        repository.allRecurringTransactions
-    ) { transactions, budget, recurring ->
+        repository.allRecurringTransactions,
+        _selectedMonth
+    ) { transactions, budget, recurring, calendar ->
+        val endOfMonth = Calendar.getInstance().apply {
+            set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), 1)
+            add(Calendar.MONTH, 1)
+            add(Calendar.MILLISECOND, -1)
+        }.timeInMillis
+
         val transIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
         val transExpense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
 
-        val recurIncome = recurring.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-        val recurExpense = recurring.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+        val activeRecurring = recurring.filter { it.startDate <= endOfMonth }
+        val recurIncome = activeRecurring.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+        val recurExpense = activeRecurring.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
 
         val totalIncome = transIncome + recurIncome
         val totalExpense = transExpense + recurExpense

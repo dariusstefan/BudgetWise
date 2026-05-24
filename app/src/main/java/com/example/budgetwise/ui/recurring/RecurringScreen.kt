@@ -18,6 +18,8 @@ import com.example.budgetwise.data.model.RecurringTransaction
 import com.example.budgetwise.data.model.TransactionType
 import com.example.budgetwise.ui.theme.ExpenseRed
 import com.example.budgetwise.ui.theme.IncomeGreen
+import com.example.budgetwise.util.CurrencyInfo
+import com.example.budgetwise.util.EUR_DEFAULT
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,9 +29,9 @@ fun RecurringScreen(
     val recurringTransactions by viewModel.recurringTransactions.collectAsState()
     val amount by viewModel.amount.collectAsState()
     val label by viewModel.label.collectAsState()
-    val category by viewModel.category.collectAsState()
     val frequency by viewModel.frequency.collectAsState()
     val type by viewModel.type.collectAsState()
+    val currencyInfo by viewModel.currencyInfo.collectAsState()
 
     var showFrequencyMenu by remember { mutableStateOf(false) }
 
@@ -95,7 +97,7 @@ fun RecurringScreen(
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(recurringTransactions) { recurring ->
-                    RecurringItem(recurring = recurring, onDelete = { viewModel.deleteRecurring(recurring) })
+                    RecurringItem(recurring = recurring, currencyInfo = currencyInfo, onDelete = { viewModel.deleteRecurring(recurring) })
                 }
             }
         }
@@ -103,7 +105,7 @@ fun RecurringScreen(
 }
 
 @Composable
-fun RecurringItem(recurring: RecurringTransaction, onDelete: () -> Unit) {
+fun RecurringItem(recurring: RecurringTransaction, currencyInfo: CurrencyInfo = EUR_DEFAULT, onDelete: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -116,7 +118,8 @@ fun RecurringItem(recurring: RecurringTransaction, onDelete: () -> Unit) {
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = (if (recurring.type == TransactionType.INCOME) "+" else "-") + "$%.2f".format(recurring.amount),
+                    text = (if (recurring.type == TransactionType.INCOME) "+" else "-") +
+                            "%s%.2f".format(currencyInfo.symbol, recurring.amount * currencyInfo.rate),
                     color = if (recurring.type == TransactionType.INCOME) IncomeGreen else ExpenseRed,
                     fontWeight = FontWeight.Bold
                 )

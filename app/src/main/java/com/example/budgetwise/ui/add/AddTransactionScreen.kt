@@ -1,13 +1,17 @@
 package com.example.budgetwise.ui.add
 
+import android.app.DatePickerDialog
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.budgetwise.data.model.TransactionType
@@ -27,7 +31,30 @@ fun AddTransactionScreen(
     val date by viewModel.date.collectAsState()
 
     var showCategoryMenu by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
     val categories = listOf("Food", "Rent", "Salary", "Entertainment", "Transport", "Shopping", "Others")
+    val context = LocalContext.current
+
+    if (showDatePicker) {
+        DisposableEffect(Unit) {
+            val calendar = Calendar.getInstance().apply { timeInMillis = date }
+            val dialog = DatePickerDialog(
+                context,
+                { _, year, month, day ->
+                    val cal = Calendar.getInstance()
+                    cal.set(year, month, day)
+                    viewModel.onDateChange(cal.timeInMillis)
+                    showDatePicker = false
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            )
+            dialog.setOnDismissListener { showDatePicker = false }
+            dialog.show()
+            onDispose { dialog.dismiss() }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -48,7 +75,6 @@ fun AddTransactionScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Type Selection
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(
                     selected = type == TransactionType.EXPENSE,
@@ -63,7 +89,6 @@ fun AddTransactionScreen(
                 Text("Income")
             }
 
-            // Amount
             OutlinedTextField(
                 value = amount,
                 onValueChange = { viewModel.onAmountChange(it) },
@@ -72,7 +97,6 @@ fun AddTransactionScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Category
             Box {
                 OutlinedTextField(
                     value = category,
@@ -102,17 +126,25 @@ fun AddTransactionScreen(
                 }
             }
 
-            // Date (Simple display for now)
             val dateFormatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-            OutlinedTextField(
-                value = dateFormatter.format(Date(date)),
-                onValueChange = {},
-                label = { Text("Date") },
-                readOnly = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Box {
+                OutlinedTextField(
+                    value = dateFormatter.format(Date(date)),
+                    onValueChange = {},
+                    label = { Text("Date") },
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        Icon(Icons.Default.CalendarMonth, contentDescription = "Pick date")
+                    }
+                )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable { showDatePicker = true }
+                )
+            }
 
-            // Note
             OutlinedTextField(
                 value = note,
                 onValueChange = { viewModel.onNoteChange(it) },

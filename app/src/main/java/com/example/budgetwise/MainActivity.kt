@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -22,6 +23,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.budgetwise.data.BudgetRepository
 import com.example.budgetwise.data.local.AppDatabase
+import com.example.budgetwise.data.preferences.PreferencesRepository
 import com.example.budgetwise.data.remote.ExchangeRateService
 import com.example.budgetwise.ui.BudgetViewModelFactory
 import com.example.budgetwise.ui.Screen
@@ -45,10 +47,12 @@ class MainActivity : ComponentActivity() {
             .build()
         val exchangeRateService = retrofit.create(ExchangeRateService::class.java)
         val repository = BudgetRepository(database.transactionDao(), exchangeRateService)
-        val factory = BudgetViewModelFactory(repository)
+        val preferencesRepository = PreferencesRepository(this)
+        val factory = BudgetViewModelFactory(repository, preferencesRepository)
 
         setContent {
-            BudgetWiseTheme {
+            val isDarkMode by preferencesRepository.isDarkMode.collectAsState(initial = false)
+            BudgetWiseTheme(darkTheme = isDarkMode) {
                 MainApp(factory)
             }
         }

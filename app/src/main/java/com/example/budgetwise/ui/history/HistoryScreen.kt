@@ -11,12 +11,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.budgetwise.data.model.Transaction
 import com.example.budgetwise.data.model.TransactionType
 import com.example.budgetwise.ui.dashboard.MonthPicker
 import com.example.budgetwise.ui.dashboard.TransactionItem
+import com.example.budgetwise.util.CurrencyInfo
+import com.example.budgetwise.util.EUR_DEFAULT
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -28,6 +29,7 @@ fun HistoryScreen(
     val transactions by viewModel.filteredTransactions.collectAsState()
     val filterType by viewModel.filterType.collectAsState()
     val selectedMonth by viewModel.selectedMonth.collectAsState()
+    val currencyInfo by viewModel.currencyInfo.collectAsState()
 
     val monthFormatter = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
 
@@ -74,6 +76,7 @@ fun HistoryScreen(
                 items(transactions) { transaction ->
                     SwipeToDeleteTransactionItem(
                         transaction = transaction,
+                        currencyInfo = currencyInfo,
                         onDelete = { viewModel.deleteTransaction(transaction) }
                     )
                 }
@@ -85,16 +88,16 @@ fun HistoryScreen(
 @Composable
 fun SwipeToDeleteTransactionItem(
     transaction: Transaction,
+    currencyInfo: CurrencyInfo = EUR_DEFAULT,
     onDelete: () -> Unit
 ) {
-    // Simple Row with delete button for now instead of complex SwipeToDismiss
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier.weight(1f)) {
-            TransactionItem(transaction)
+            TransactionItem(transaction, currencyInfo)
         }
         IconButton(onClick = onDelete) {
             Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)

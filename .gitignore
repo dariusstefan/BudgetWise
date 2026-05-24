@@ -1,3 +1,4 @@
+# Android/Gradle
 *.iml
 .gradle
 /local.properties
@@ -13,3 +14,32 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# IntelliJ / Android Studio
+*.iws
+out/
+.idea/
+
+# Signing & secrets
+*.jks
+*.keystore
+keystore.properties
+google-services.json
+secrets.properties
+*.p12
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kotlin/Java
+*.class
+
+# Logs & temp
+*.log
+*.tmp
+*.temp
+
+# NDK/CMake
+.externalNativeBuild/
+.cxx/

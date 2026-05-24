@@ -14,5 +14,6 @@ data class RecurringTransaction(
     val label: String,
     val category: String,
     val frequency: Frequency,
-    val type: TransactionType
+    val type: TransactionType,
+    val startDate: Long = System.currentTimeMillis()
 )

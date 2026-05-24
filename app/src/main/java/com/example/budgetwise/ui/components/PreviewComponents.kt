@@ -1,6 +1,5 @@
 package com.example.budgetwise.ui.components
 
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.budgetwise.data.model.Transaction
@@ -10,6 +9,7 @@ import com.example.budgetwise.ui.dashboard.BalanceSummary
 import com.example.budgetwise.ui.dashboard.BudgetProgress
 import com.example.budgetwise.ui.dashboard.TransactionItem
 import com.example.budgetwise.ui.theme.BudgetWiseTheme
+import com.example.budgetwise.util.EUR_DEFAULT
 
 @Preview(showBackground = true)
 @Composable
@@ -21,7 +21,8 @@ fun BalanceCardPreview() {
                 income = 2000.0,
                 expense = 750.0,
                 budget = 1000.0
-            )
+            ),
+            symbol = "€"
         )
     }
 }
@@ -30,7 +31,7 @@ fun BalanceCardPreview() {
 @Composable
 fun BudgetProgressPreview() {
     BudgetWiseTheme {
-        BudgetProgress(expense = 750.0, budget = 1000.0)
+        BudgetProgress(expense = 750.0, budget = 1000.0, symbol = "€")
     }
 }
 
@@ -45,7 +46,8 @@ fun TransactionItemPreview() {
                 date = System.currentTimeMillis(),
                 note = "Lunch",
                 type = TransactionType.EXPENSE
-            )
+            ),
+            currencyInfo = EUR_DEFAULT
         )
     }
 }

@@ -6,13 +6,19 @@ import com.example.budgetwise.data.BudgetRepository
 import com.example.budgetwise.data.model.Frequency
 import com.example.budgetwise.data.model.RecurringTransaction
 import com.example.budgetwise.data.model.TransactionType
+import com.example.budgetwise.data.preferences.PreferencesRepository
+import com.example.budgetwise.util.CurrencyInfo
+import com.example.budgetwise.util.EUR_DEFAULT
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class RecurringViewModel(private val repository: BudgetRepository) : ViewModel() {
+class RecurringViewModel(
+    private val repository: BudgetRepository,
+    private val preferencesRepository: PreferencesRepository
+) : ViewModel() {
 
     val recurringTransactions: StateFlow<List<RecurringTransaction>> = repository.allRecurringTransactions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -32,6 +38,27 @@ class RecurringViewModel(private val repository: BudgetRepository) : ViewModel()
     private val _type = MutableStateFlow(TransactionType.EXPENSE)
     val type: StateFlow<TransactionType> = _type
 
+    private val _currencyInfo = MutableStateFlow(EUR_DEFAULT)
+    val currencyInfo: StateFlow<CurrencyInfo> = _currencyInfo
+
+    init {
+        viewModelScope.launch {
+            preferencesRepository.selectedCurrency.collect { currency ->
+                val rate = if (currency == "EUR") {
+                    1.0
+                } else {
+                    try {
+                        val response = repository.getExchangeRates("EUR")
+                        response.rates[currency] ?: 1.0
+                    } catch (e: Exception) {
+                        1.0
+                    }
+                }
+                _currencyInfo.value = CurrencyInfo(currency, rate)
+            }
+        }
+    }
+
     fun onAmountChange(value: String) { _amount.value = value }
     fun onLabelChange(value: String) { _label.value = value }
     fun onCategoryChange(value: String) { _category.value = value }
@@ -50,7 +77,6 @@ class RecurringViewModel(private val repository: BudgetRepository) : ViewModel()
                     type = _type.value
                 )
             )
-            // Reset fields
             _amount.value = ""
             _label.value = ""
         }
