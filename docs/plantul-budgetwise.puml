@@ -1,0 +1,60 @@
+@startuml BudgetWise Navigation Flow
+
+skinparam rectangle {
+  BackgroundColor<<screen>> #E8F4FD
+  BorderColor<<screen>> #2E86C1
+  BorderThickness<<screen>> 2
+}
+skinparam note {
+  BackgroundColor #FEF9E7
+  BorderColor #F39C12
+}
+skinparam arrow {
+  Color #2E86C1
+  FontSize 11
+}
+skinparam defaultFontName Helvetica
+
+title BudgetWise — Screen Navigation & UI Elements
+
+rectangle "NavHost (Jetpack Navigation)" {
+
+  rectangle "**DASHBOARD**\n──────────────────\n• TopAppBar\n• MonthPicker (← Month →)\n• Card: balance / income / expenses\n• LinearProgressIndicator (budget)\n• LazyColumn (recent transactions)\n• FAB (+)\n• BottomNavigationBar" <<screen>> as DASH
+
+  rectangle "**ADD TRANSACTION**\n──────────────────\n• TopAppBar\n• TextField: amount, note\n• DropdownMenu: category\n• DatePicker\n• RadioButton: income / expense\n• Button: Save" <<screen>> as ADD
+
+  rectangle "**HISTORY**\n──────────────────\n• TopAppBar\n• MonthPicker (← Month →)\n• FilterChip: All / Income / Expense\n• LazyColumn\n• SwipeToDismiss (delete)" <<screen>> as HIST
+
+  rectangle "**RECURRING TRANSACTIONS**\n──────────────────\n• TopAppBar\n• LazyColumn (recurring list)\n• Card per entry\n• TextField: amount, label\n• DropdownMenu: category, frequency\n• RadioButton: income / expense\n• Button: Add / Delete" <<screen>> as RECUR
+
+  rectangle "**SETTINGS**\n──────────────────\n• TopAppBar\n• DropdownMenu: currency\n• Switch: dark mode\n• RadioGroup: language" <<screen>> as SET
+
+}
+
+DASH --> ADD : FAB (+)\nnavigateTo("add_transaction")
+ADD --> DASH : Save / Back\nnavigateUp()
+
+DASH --> HIST : BottomNavBar
+DASH --> RECUR : BottomNavBar
+DASH --> SET : BottomNavBar
+
+HIST --> DASH : BottomNavBar
+RECUR --> DASH : BottomNavBar
+SET --> DASH : BottomNavBar
+
+note right of ADD
+  Writes to
+  Room DB
+end note
+
+note right of SET
+  Triggers Retrofit call
+  for exchange rates
+end note
+
+note bottom of RECUR
+  Recurring entries auto-applied
+  to the viewed month
+end note
+
+@enduml
