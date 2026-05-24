@@ -3,23 +3,16 @@ package com.example.budgetwise.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetwise.data.BudgetRepository
-import com.example.budgetwise.data.model.MonthBudget
 import com.example.budgetwise.data.preferences.PreferencesRepository
+import com.example.budgetwise.util.CurrencyInfo
+import com.example.budgetwise.util.EUR_DEFAULT
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
 class SettingsViewModel(
     private val repository: BudgetRepository,
     private val preferencesRepository: PreferencesRepository
 ) : ViewModel() {
-
-    private val monthIdFormatter = SimpleDateFormat("yyyy-MM", Locale.getDefault())
-    private val currentMonthId = monthIdFormatter.format(Date())
-
-    val currentMonthBudget: StateFlow<MonthBudget?> = repository.getBudgetForMonth(currentMonthId)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val selectedCurrency: StateFlow<String> = preferencesRepository.selectedCurrency
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "EUR")
@@ -27,9 +20,34 @@ class SettingsViewModel(
     val isDarkMode: StateFlow<Boolean> = preferencesRepository.isDarkMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    fun setBudget(amount: Double) {
+    private val _currencyInfo = MutableStateFlow(EUR_DEFAULT)
+    val currencyInfo: StateFlow<CurrencyInfo> = _currencyInfo
+
+    val defaultBudget: StateFlow<Double> = preferencesRepository.defaultBudget
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    init {
         viewModelScope.launch {
-            repository.setBudgetForMonth(MonthBudget(currentMonthId, amount))
+            preferencesRepository.selectedCurrency.collect { currency ->
+                val rate = if (currency == "EUR") {
+                    1.0
+                } else {
+                    try {
+                        val response = repository.getExchangeRates("EUR")
+                        response.rates[currency] ?: 1.0
+                    } catch (e: Exception) {
+                        1.0
+                    }
+                }
+                _currencyInfo.value = CurrencyInfo(currency, rate)
+            }
+        }
+    }
+
+    fun setDefaultBudget(amount: Double) {
+        val rate = _currencyInfo.value.rate
+        viewModelScope.launch {
+            preferencesRepository.setDefaultBudget(amount / rate)
         }
     }
 

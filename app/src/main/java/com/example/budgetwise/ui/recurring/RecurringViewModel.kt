@@ -67,10 +67,11 @@ class RecurringViewModel(
 
     fun addRecurring() {
         val amountValue = _amount.value.toDoubleOrNull() ?: return
+        val rate = _currencyInfo.value.rate
         viewModelScope.launch {
             repository.insertRecurringTransaction(
                 RecurringTransaction(
-                    amount = amountValue,
+                    amount = amountValue / rate,
                     label = _label.value,
                     category = _category.value,
                     frequency = _frequency.value,

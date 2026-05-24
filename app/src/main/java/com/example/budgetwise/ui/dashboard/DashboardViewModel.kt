@@ -72,12 +72,15 @@ class DashboardViewModel(
         repository.getBudgetForMonth(monthIdFormatter.format(calendar.time))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    private val defaultBudget = preferencesRepository.defaultBudget
+
     val balanceSummary = combine(
         transactionsForSelectedMonth,
         monthBudget,
         repository.allRecurringTransactions,
-        _selectedMonth
-    ) { transactions, budget, recurring, calendar ->
+        _selectedMonth,
+        defaultBudget
+    ) { transactions, budget, recurring, calendar, defBudget ->
         val endOfMonth = Calendar.getInstance().apply {
             set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), 1)
             add(Calendar.MONTH, 1)
@@ -98,7 +101,7 @@ class DashboardViewModel(
             balance = totalIncome - totalExpense,
             income = totalIncome,
             expense = totalExpense,
-            budget = budget?.budgetAmount ?: 0.0
+            budget = budget?.budgetAmount ?: defBudget
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BalanceSummary())
 
@@ -116,6 +119,14 @@ class DashboardViewModel(
         val prev = _selectedMonth.value.clone() as Calendar
         prev.add(Calendar.MONTH, -1)
         _selectedMonth.value = prev
+    }
+
+    fun setBudget(amount: Double) {
+        val rate = _currencyInfo.value.rate
+        val monthId = monthIdFormatter.format(_selectedMonth.value.time)
+        viewModelScope.launch {
+            repository.setBudgetForMonth(MonthBudget(monthId, amount / rate))
+        }
     }
 }
 

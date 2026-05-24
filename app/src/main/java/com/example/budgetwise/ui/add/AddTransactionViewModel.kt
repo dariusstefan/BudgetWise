@@ -11,7 +11,6 @@ import com.example.budgetwise.util.EUR_DEFAULT
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -21,9 +20,26 @@ class AddTransactionViewModel(
     private val preferencesRepository: PreferencesRepository
 ) : ViewModel() {
 
-    val currencySymbol: StateFlow<String> = preferencesRepository.selectedCurrency
-        .map { code -> CurrencyInfo(code, 1.0).symbol }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), EUR_DEFAULT.symbol)
+    private val _currencyInfo = MutableStateFlow(EUR_DEFAULT)
+    val currencyInfo: StateFlow<CurrencyInfo> = _currencyInfo
+
+    init {
+        viewModelScope.launch {
+            preferencesRepository.selectedCurrency.collect { currency ->
+                val rate = if (currency == "EUR") {
+                    1.0
+                } else {
+                    try {
+                        val response = repository.getExchangeRates("EUR")
+                        response.rates[currency] ?: 1.0
+                    } catch (e: Exception) {
+                        1.0
+                    }
+                }
+                _currencyInfo.value = CurrencyInfo(currency, rate)
+            }
+        }
+    }
 
     private val _amount = MutableStateFlow("")
     val amount: StateFlow<String> = _amount
@@ -48,10 +64,11 @@ class AddTransactionViewModel(
 
     fun saveTransaction(onSuccess: () -> Unit) {
         val amountValue = _amount.value.toDoubleOrNull() ?: return
+        val rate = _currencyInfo.value.rate
         viewModelScope.launch {
             repository.insertTransaction(
                 Transaction(
-                    amount = amountValue,
+                    amount = amountValue / rate,
                     category = _category.value,
                     date = _date.value,
                     note = _note.value,

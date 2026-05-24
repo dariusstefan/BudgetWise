@@ -4,13 +4,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,6 +38,20 @@ fun DashboardScreen(
     val summary by viewModel.balanceSummary.collectAsState()
     val recentTransactions by viewModel.recentTransactions.collectAsState()
     val currencyInfo by viewModel.currencyInfo.collectAsState()
+
+    var showBudgetDialog by remember { mutableStateOf(false) }
+
+    if (showBudgetDialog) {
+        BudgetDialog(
+            currentBudget = if (summary.budget > 0) "%.2f".format(summary.budget * currencyInfo.rate) else "",
+            symbol = currencyInfo.symbol,
+            onConfirm = { amount ->
+                viewModel.setBudget(amount)
+                showBudgetDialog = false
+            },
+            onDismiss = { showBudgetDialog = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -66,9 +82,21 @@ fun DashboardScreen(
                 BalanceCard(summary, currencyInfo)
             }
 
-            if (summary.budget > 0) {
-                item {
-                    BudgetProgress(summary.expense, summary.budget, currencyInfo)
+            item {
+                if (summary.budget > 0) {
+                    BudgetProgress(
+                        expense = summary.expense,
+                        budget = summary.budget,
+                        currencyInfo = currencyInfo,
+                        onEditClick = { showBudgetDialog = true }
+                    )
+                } else {
+                    OutlinedButton(
+                        onClick = { showBudgetDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Set budget for this month")
+                    }
                 }
             }
 
@@ -146,12 +174,31 @@ fun SummaryItem(label: String, amount: Double, color: Color, currencyInfo: Curre
 }
 
 @Composable
-fun BudgetProgress(expense: Double, budget: Double, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
+fun BudgetProgress(
+    expense: Double,
+    budget: Double,
+    currencyInfo: CurrencyInfo = EUR_DEFAULT,
+    onEditClick: (() -> Unit)? = null
+) {
     val progress = (expense / budget).toFloat().coerceIn(0f, 1f)
     Column {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(text = "Monthly Budget", style = MaterialTheme.typography.labelMedium)
-            Text(text = "%s%.0f / %s%.0f".format(currencyInfo.symbol, expense * currencyInfo.rate, currencyInfo.symbol, budget * currencyInfo.rate), style = MaterialTheme.typography.labelMedium)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "%s%.0f / %s%.0f".format(currencyInfo.symbol, expense * currencyInfo.rate, currencyInfo.symbol, budget * currencyInfo.rate),
+                    style = MaterialTheme.typography.labelMedium
+                )
+                if (onEditClick != null) {
+                    IconButton(onClick = onEditClick, modifier = Modifier.size(20.dp)) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit budget", modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
         }
         Spacer(modifier = Modifier.height(4.dp))
         LinearProgressIndicator(
@@ -182,5 +229,45 @@ fun TransactionItem(transaction: Transaction, currencyInfo: CurrencyInfo = EUR_D
             color = if (transaction.type == TransactionType.INCOME) IncomeGreen else ExpenseRed,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+@Composable
+fun BudgetDialog(
+    currentBudget: String,
+    symbol: String,
+    onConfirm: (Double) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var input by remember { mutableStateOf(currentBudget) }
+    Dialog(onDismissRequest = onDismiss) {
+        Card {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("Set Monthly Budget", style = MaterialTheme.typography.titleMedium)
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it },
+                    label = { Text("Amount") },
+                    prefix = { Text(symbol) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = { input.toDoubleOrNull()?.let(onConfirm) },
+                        enabled = input.toDoubleOrNull() != null
+                    ) { Text("Save") }
+                }
+            }
+        }
     }
 }

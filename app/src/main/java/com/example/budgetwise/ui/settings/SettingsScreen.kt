@@ -8,21 +8,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.budgetwise.util.CurrencyInfo
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel
 ) {
-    val budget by viewModel.currentMonthBudget.collectAsState()
     val currency by viewModel.selectedCurrency.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
-    val currencySymbol = CurrencyInfo(currency, 1.0).symbol
+    val currencyInfo by viewModel.currencyInfo.collectAsState()
+    val defaultBudget by viewModel.defaultBudget.collectAsState()
 
     var budgetInput by remember { mutableStateOf("") }
-    LaunchedEffect(budget) {
-        budgetInput = budget?.budgetAmount?.toString() ?: ""
+    var budgetSaved by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(defaultBudget, currencyInfo) {
+        budgetInput = if (defaultBudget > 0) "%.2f".format(defaultBudget * currencyInfo.rate) else ""
     }
 
     Scaffold(
@@ -38,20 +41,38 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("Monthly Budget", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Applies to the current month and all future months without a specific override.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = budgetInput,
                     onValueChange = { budgetInput = it },
-                    label = { Text("Set Budget") },
-                    prefix = { Text(currencySymbol) },
+                    label = { Text("Default Budget") },
+                    prefix = { Text(currencyInfo.symbol) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = {
-                    budgetInput.toDoubleOrNull()?.let { viewModel.setBudget(it) }
-                }) {
-                    Text("Save")
+                val budgetChanged = budgetInput.toDoubleOrNull()?.let {
+                    "%.2f".format(it) != "%.2f".format(defaultBudget * currencyInfo.rate)
+                } ?: false
+                Button(
+                    onClick = {
+                        budgetInput.toDoubleOrNull()?.let {
+                            viewModel.setDefaultBudget(it)
+                            scope.launch {
+                                budgetSaved = true
+                                delay(1500)
+                                budgetSaved = false
+                            }
+                        }
+                    },
+                    enabled = budgetChanged
+                ) {
+                    Text(if (budgetSaved) "Saved ✓" else "Save")
                 }
             }
 
