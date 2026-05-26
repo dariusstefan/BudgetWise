@@ -1,11 +1,14 @@
 package com.example.budgetwise.ui.settings
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -28,6 +31,8 @@ fun SettingsScreen(
         budgetInput = if (defaultBudget > 0) "%.2f".format(defaultBudget * currencyInfo.rate) else ""
     }
 
+    val focusManager = LocalFocusManager.current
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Settings") })
@@ -37,7 +42,8 @@ fun SettingsScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(16.dp)
+                .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) },
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("Monthly Budget", style = MaterialTheme.typography.titleMedium)
