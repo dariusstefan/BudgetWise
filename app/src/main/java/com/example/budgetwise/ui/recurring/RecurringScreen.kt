@@ -42,6 +42,7 @@ import com.example.budgetwise.ui.theme.IncomeGreen
 import com.example.budgetwise.ui.theme.IncomeSurface
 import com.example.budgetwise.util.CurrencyInfo
 import com.example.budgetwise.util.EUR_DEFAULT
+import com.example.budgetwise.util.categoryEmoji
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -73,11 +74,13 @@ fun RecurringScreen(
     val frequency by viewModel.frequency.collectAsState()
     val type by viewModel.type.collectAsState()
     val currencyInfo by viewModel.currencyInfo.collectAsState()
+    val category by viewModel.category.collectAsState()
     val dayOfWeek by viewModel.dayOfWeek.collectAsState()
     val dayOfMonth by viewModel.dayOfMonth.collectAsState()
     val hasEndDate by viewModel.hasEndDate.collectAsState()
     val endDate by viewModel.endDate.collectAsState()
 
+    var showCategoryMenu by remember { mutableStateOf(false) }
     var showFrequencyMenu by remember { mutableStateOf(false) }
     var showDayOfMonthMenu by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
@@ -317,6 +320,33 @@ fun RecurringScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
+
+                    // Category
+                    val categories = listOf("Food & Groceries", "Housing", "Salary", "Entertainment", "Transport", "Shopping", "Utilities", "Others")
+                    Box {
+                        OutlinedTextField(
+                            value = "${categoryEmoji(category)} $category",
+                            onValueChange = {},
+                            label = { Text("Category") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = { Text("▼") }
+                        )
+                        Box(modifier = Modifier
+                            .matchParentSize()
+                            .clickable { focusManager.clearFocus(); showCategoryMenu = true })
+                        DropdownMenu(
+                            expanded = showCategoryMenu,
+                            onDismissRequest = { showCategoryMenu = false }
+                        ) {
+                            categories.forEach { cat ->
+                                DropdownMenuItem(
+                                    text = { Text("${categoryEmoji(cat)} $cat") },
+                                    onClick = { viewModel.onCategoryChange(cat); showCategoryMenu = false }
+                                )
+                            }
+                        }
+                    }
 
                     // Frequency
                     Box {
@@ -559,9 +589,14 @@ fun RecurringItem(recurring: RecurringTransaction, currencyInfo: CurrencyInfo = 
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                text = "🗓️",
+                fontSize = 28.sp,
+                modifier = Modifier.size(44.dp).wrapContentSize()
+            )
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = recurring.label, fontWeight = FontWeight.Bold)
                 Text(

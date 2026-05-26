@@ -486,7 +486,7 @@ fun IncomingTransactionRow(incoming: IncomingTransaction, currencyInfo: Currency
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = categoryEmoji(incoming.category),
+            text = "🗓️",
             fontSize = 28.sp,
             modifier = Modifier.size(44.dp).wrapContentSize()
         )

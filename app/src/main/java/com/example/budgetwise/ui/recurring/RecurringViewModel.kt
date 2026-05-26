@@ -29,7 +29,7 @@ class RecurringViewModel(
     private val _label = MutableStateFlow("")
     val label: StateFlow<String> = _label
 
-    private val _category = MutableStateFlow("Rent")
+    private val _category = MutableStateFlow("Others")
     val category: StateFlow<String> = _category
 
     private val _frequency = MutableStateFlow(Frequency.MONTHLY)
