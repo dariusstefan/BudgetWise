@@ -1,8 +1,14 @@
 package com.example.budgetwise.ui.recurring
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -10,16 +16,25 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.Color
 import com.example.budgetwise.data.model.Frequency
 import com.example.budgetwise.data.model.RecurringTransaction
 import com.example.budgetwise.data.model.TransactionType
 import com.example.budgetwise.ui.theme.ExpenseRed
+import com.example.budgetwise.ui.theme.ExpenseSurface
 import com.example.budgetwise.ui.theme.IncomeGreen
+import com.example.budgetwise.ui.theme.IncomeSurface
 import com.example.budgetwise.util.CurrencyInfo
 import com.example.budgetwise.util.EUR_DEFAULT
 
@@ -36,6 +51,13 @@ fun RecurringScreen(
     val currencyInfo by viewModel.currencyInfo.collectAsState()
 
     var showFrequencyMenu by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
+    val isExpense = type == TransactionType.EXPENSE
+    val amountColor = if (isExpense) ExpenseRed else IncomeGreen
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val selectedExpenseBg = if (isDark) MaterialTheme.colorScheme.background else ExpenseSurface
+    val selectedIncomeBg = if (isDark) MaterialTheme.colorScheme.background else IncomeSurface
 
     val totalIn = recurringTransactions
         .filter { it.type == TransactionType.INCOME }
@@ -43,6 +65,45 @@ fun RecurringScreen(
     val totalOut = recurringTransactions
         .filter { it.type == TransactionType.EXPENSE }
         .sumOf { it.amount * currencyInfo.rate }
+
+    var sheetType by remember { mutableStateOf<TransactionType?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    if (sheetType != null) {
+        ModalBottomSheet(
+            onDismissRequest = { sheetType = null },
+            sheetState = sheetState
+        ) {
+            val sheetList = recurringTransactions.filter { it.type == sheetType }
+            val sheetTitle = if (sheetType == TransactionType.INCOME) "Recurring In" else "Recurring Out"
+            Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 32.dp)) {
+                Text(
+                    sheetTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                if (sheetList.isEmpty()) {
+                    Text(
+                        "No recurring ${if (sheetType == TransactionType.INCOME) "income" else "expenses"} yet.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 24.dp)
+                    )
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(sheetList, key = { it.id }) { recurring ->
+                            SwipeToDeleteRecurringItem(
+                                recurring = recurring,
+                                currencyInfo = currencyInfo,
+                                onDelete = { viewModel.deleteRecurring(recurring) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -53,7 +114,8 @@ fun RecurringScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(16.dp)
+                .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) },
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -62,69 +124,183 @@ fun RecurringScreen(
                     amount = totalIn,
                     symbol = currencyInfo.symbol,
                     color = IncomeGreen,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    onClick = { sheetType = TransactionType.INCOME }
                 )
                 RecurringSummaryCard(
                     label = "RECURRING OUT",
                     amount = totalOut,
                     symbol = currencyInfo.symbol,
                     color = ExpenseRed,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    onClick = { sheetType = TransactionType.EXPENSE }
                 )
             }
 
-            Card {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Add New Recurring", style = MaterialTheme.typography.titleSmall)
+            // Add New Recurring form
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.medium),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.background
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        "Add New Recurring",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = type == TransactionType.EXPENSE, onClick = { viewModel.onTypeChange(TransactionType.EXPENSE) })
-                        Text("Expense")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        RadioButton(selected = type == TransactionType.INCOME, onClick = { viewModel.onTypeChange(TransactionType.INCOME) })
-                        Text("Income")
+                    // Type toggle
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .background(if (isExpense) selectedExpenseBg else Color.Transparent)
+                                .clickable { viewModel.onTypeChange(TransactionType.EXPENSE) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "↓ Expense",
+                                color = if (isExpense) ExpenseRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = if (isExpense) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                        VerticalDivider(color = MaterialTheme.colorScheme.outline)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .background(if (!isExpense) selectedIncomeBg else Color.Transparent)
+                                .clickable { viewModel.onTypeChange(TransactionType.INCOME) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "↑ Income",
+                                color = if (!isExpense) IncomeGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = if (!isExpense) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
                     }
 
+                    // Amount
+                    var amountFocused by remember { mutableStateOf(false) }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "AMOUNT (${currencyInfo.code})",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.Bottom,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = currencyInfo.symbol.trim(),
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = amountColor,
+                                modifier = Modifier.padding(end = 4.dp, bottom = 8.dp)
+                            )
+                            BasicTextField(
+                                value = amount,
+                                onValueChange = { viewModel.onAmountChange(it) },
+                                modifier = Modifier.onFocusChanged { amountFocused = it.isFocused },
+                                textStyle = TextStyle(
+                                    fontSize = 48.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = amountColor,
+                                    textAlign = TextAlign.Center
+                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                singleLine = true,
+                                decorationBox = { innerTextField ->
+                                    Box(contentAlignment = Alignment.Center) {
+                                        if (amount.isEmpty()) {
+                                            Text(
+                                                "0.00",
+                                                fontSize = 48.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = amountColor.copy(alpha = 0.3f)
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                }
+                            )
+                        }
+                        if (amount.isNotEmpty() && amountFocused) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            HorizontalDivider(
+                                modifier = Modifier.fillMaxWidth(0.7f),
+                                color = amountColor,
+                                thickness = 2.dp
+                            )
+                        }
+                    }
+
+                    // Label
                     OutlinedTextField(
                         value = label,
                         onValueChange = { viewModel.onLabelChange(it) },
                         label = { Text("Label (e.g. Rent)") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Frequency
+                    Box {
                         OutlinedTextField(
-                            value = amount,
-                            onValueChange = { viewModel.onAmountChange(it) },
-                            label = { Text("Amount") },
-                            prefix = { Text(currencyInfo.symbol) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f)
+                            value = frequency.name,
+                            onValueChange = {},
+                            label = { Text("Frequency") },
+                            readOnly = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            trailingIcon = { Text("▼") }
                         )
-                        Box(modifier = Modifier.weight(1f)) {
-                            OutlinedButton(onClick = { showFrequencyMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                                Text(frequency.name)
-                            }
-                            DropdownMenu(expanded = showFrequencyMenu, onDismissRequest = { showFrequencyMenu = false }) {
-                                Frequency.entries.forEach { freq ->
-                                    DropdownMenuItem(text = { Text(freq.name) }, onClick = {
-                                        viewModel.onFrequencyChange(freq)
-                                        showFrequencyMenu = false
-                                    })
-                                }
+                        Box(modifier = Modifier
+                            .matchParentSize()
+                            .clickable { focusManager.clearFocus(); showFrequencyMenu = true })
+                        DropdownMenu(
+                            expanded = showFrequencyMenu,
+                            onDismissRequest = { showFrequencyMenu = false }
+                        ) {
+                            Frequency.entries.forEach { freq ->
+                                DropdownMenuItem(
+                                    text = { Text(freq.name) },
+                                    onClick = { viewModel.onFrequencyChange(freq); showFrequencyMenu = false }
+                                )
                             }
                         }
                     }
 
-                    Button(onClick = { viewModel.addRecurring() }, modifier = Modifier.fillMaxWidth(), enabled = amount.isNotEmpty() && label.isNotEmpty()) {
-                        Text("Add")
+                    Button(
+                        onClick = { viewModel.addRecurring() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = amount.isNotEmpty() && label.isNotEmpty()
+                    ) {
+                        Text("Add Recurring", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                     }
-                }
-            }
-
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(recurringTransactions) { recurring ->
-                    RecurringItem(recurring = recurring, currencyInfo = currencyInfo, onDelete = { viewModel.deleteRecurring(recurring) })
                 }
             }
         }
@@ -132,14 +308,28 @@ fun RecurringScreen(
 }
 
 @Composable
-fun RecurringSummaryCard(label: String, amount: Double, symbol: String, color: Color, modifier: Modifier = Modifier) {
-    Card(modifier = modifier) {
-        Column(modifier = Modifier.padding(16.dp)) {
+fun RecurringSummaryCard(
+    label: String,
+    amount: Double,
+    symbol: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    Surface(
+        modifier = modifier
+            .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.medium)
+            .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 0.5.sp
+                color = color.copy(alpha = 0.8f),
+                letterSpacing = 1.sp,
+                fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -148,32 +338,84 @@ fun RecurringSummaryCard(label: String, amount: Double, symbol: String, color: C
                 fontWeight = FontWeight.Bold,
                 color = color
             )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "tap to view →",
+                style = MaterialTheme.typography.labelSmall,
+                color = color.copy(alpha = 0.5f)
+            )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeToDeleteRecurringItem(
+    recurring: RecurringTransaction,
+    currencyInfo: CurrencyInfo = EUR_DEFAULT,
+    onDelete: () -> Unit
+) {
+    val state = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) { onDelete(); true } else false
+        },
+        positionalThreshold = { totalDistance -> totalDistance * 0.5f }
+    )
+    SwipeToDismissBox(
+        state = state,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 4.dp)
+                    .background(color = ExpenseRed, shape = MaterialTheme.shapes.medium),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = Color.White,
+                    modifier = Modifier.padding(end = 20.dp)
+                )
+            }
+        }
+    ) {
+        RecurringItem(recurring = recurring, currencyInfo = currencyInfo, onDelete = onDelete)
     }
 }
 
 @Composable
 fun RecurringItem(recurring: RecurringTransaction, currencyInfo: CurrencyInfo = EUR_DEFAULT, onDelete: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(text = recurring.label, fontWeight = FontWeight.Bold)
-                Text(text = "${recurring.frequency.name} • ${recurring.category}", style = MaterialTheme.typography.bodySmall)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = (if (recurring.type == TransactionType.INCOME) "+" else "-") +
+                    text = "${recurring.frequency.name} • ${recurring.category}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = (if (recurring.type == TransactionType.INCOME) IncomeGreen else ExpenseRed).copy(alpha = 0.1f)
+            ) {
+                Text(
+                    text = (if (recurring.type == TransactionType.INCOME) "+ " else "– ") +
                             "%s%.2f".format(currencyInfo.symbol, recurring.amount * currencyInfo.rate),
                     color = if (recurring.type == TransactionType.INCOME) IncomeGreen else ExpenseRed,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                 )
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
-                }
             }
         }
     }
