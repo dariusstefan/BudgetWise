@@ -1,8 +1,12 @@
 package com.example.budgetwise.ui.add
 
 import android.app.DatePickerDialog
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -11,10 +15,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.budgetwise.data.model.TransactionType
+import com.example.budgetwise.ui.theme.ExpenseRed
+import com.example.budgetwise.ui.theme.IncomeGreen
+import com.example.budgetwise.ui.theme.IncomeSurface
+import com.example.budgetwise.ui.theme.ExpenseSurface
+import com.example.budgetwise.util.categoryEmoji
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -33,8 +48,11 @@ fun AddTransactionScreen(
 
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
-    val categories = listOf("Food", "Rent", "Salary", "Entertainment", "Transport", "Shopping", "Others")
+    val categories = listOf("Food & Groceries", "Housing", "Salary", "Entertainment", "Transport", "Shopping", "Utilities", "Others")
     val context = LocalContext.current
+
+    val isExpense = type == TransactionType.EXPENSE
+    val amountColor = if (isExpense) ExpenseRed else IncomeGreen
 
     if (showDatePicker) {
         DisposableEffect(Unit) {
@@ -73,62 +91,139 @@ fun AddTransactionScreen(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = type == TransactionType.EXPENSE,
-                    onClick = { viewModel.onTypeChange(TransactionType.EXPENSE) }
-                )
-                Text("Expense")
-                Spacer(modifier = Modifier.width(16.dp))
-                RadioButton(
-                    selected = type == TransactionType.INCOME,
-                    onClick = { viewModel.onTypeChange(TransactionType.INCOME) }
-                )
-                Text("Income")
+            // Custom segmented toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(if (isExpense) ExpenseSurface else Color.Transparent)
+                        .clickable { viewModel.onTypeChange(TransactionType.EXPENSE) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "↓ Expense",
+                        color = if (isExpense) ExpenseRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (isExpense) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                }
+                VerticalDivider(color = MaterialTheme.colorScheme.outline)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(if (!isExpense) IncomeSurface else Color.Transparent)
+                        .clickable { viewModel.onTypeChange(TransactionType.INCOME) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "↑ Income",
+                        color = if (!isExpense) IncomeGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (!isExpense) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                }
             }
 
-            OutlinedTextField(
-                value = amount,
-                onValueChange = { viewModel.onAmountChange(it) },
-                label = { Text("Amount") },
-                prefix = { Text(currencyInfo.symbol) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            // Amount section with label + large BasicTextField + underline
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
-            )
+            ) {
+                Text(
+                    text = "AMOUNT (${currencyInfo.code})",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.Bottom,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = currencyInfo.symbol.trim(),
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = amountColor,
+                        modifier = Modifier.padding(end = 4.dp, bottom = 8.dp)
+                    )
+                    BasicTextField(
+                        value = amount,
+                        onValueChange = { viewModel.onAmountChange(it) },
+                        textStyle = TextStyle(
+                            fontSize = 48.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = amountColor,
+                            textAlign = TextAlign.Start
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        decorationBox = { innerTextField ->
+                            Box {
+                                if (amount.isEmpty()) {
+                                    Text(
+                                        "0.00",
+                                        fontSize = 48.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = amountColor.copy(alpha = 0.3f)
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        }
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                HorizontalDivider(
+                    modifier = Modifier.fillMaxWidth(0.7f),
+                    color = amountColor,
+                    thickness = 2.dp
+                )
+            }
 
+            // Category
             Box {
                 OutlinedTextField(
-                    value = category,
+                    value = "${categoryEmoji(category)} $category",
                     onValueChange = {},
                     label = { Text("Category") },
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
-                        IconButton(onClick = { showCategoryMenu = true }) {
-                            Text("▼")
-                        }
+                        IconButton(onClick = { showCategoryMenu = true }) { Text("▼") }
                     }
                 )
-                DropdownMenu(
-                    expanded = showCategoryMenu,
-                    onDismissRequest = { showCategoryMenu = false }
-                ) {
+                DropdownMenu(expanded = showCategoryMenu, onDismissRequest = { showCategoryMenu = false }) {
                     categories.forEach { cat ->
                         DropdownMenuItem(
-                            text = { Text(cat) },
-                            onClick = {
-                                viewModel.onCategoryChange(cat)
-                                showCategoryMenu = false
-                            }
+                            text = { Text("${categoryEmoji(cat)} $cat") },
+                            onClick = { viewModel.onCategoryChange(cat); showCategoryMenu = false }
                         )
                     }
                 }
             }
 
-            val dateFormatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+            // Note
+            OutlinedTextField(
+                value = note,
+                onValueChange = { viewModel.onNoteChange(it) },
+                label = { Text("Note (optional)") },
+                placeholder = { Text("e.g. Weekly groceries", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Date
+            val dateFormatter = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
             Box {
                 OutlinedTextField(
                     value = dateFormatter.format(Date(date)),
@@ -140,28 +235,20 @@ fun AddTransactionScreen(
                         Icon(Icons.Default.CalendarMonth, contentDescription = "Pick date")
                     }
                 )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable { showDatePicker = true }
-                )
+                Box(modifier = Modifier.matchParentSize().clickable { showDatePicker = true })
             }
-
-            OutlinedTextField(
-                value = note,
-                onValueChange = { viewModel.onNoteChange(it) },
-                label = { Text("Note (Optional)") },
-                modifier = Modifier.fillMaxWidth()
-            )
 
             Spacer(modifier = Modifier.weight(1f))
 
             Button(
                 onClick = { viewModel.saveTransaction { onNavigateBack() } },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(8.dp),
                 enabled = amount.isNotEmpty()
             ) {
-                Text("Save Transaction")
+                Text("Save Transaction", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             }
         }
     }

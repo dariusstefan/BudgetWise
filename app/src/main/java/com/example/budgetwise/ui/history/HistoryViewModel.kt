@@ -44,18 +44,30 @@ class HistoryViewModel(
         }
     }
 
-    val filteredTransactions: StateFlow<List<Transaction>> = combine(
+    private val allMonthTransactions: StateFlow<List<Transaction>> = combine(
         repository.allTransactions,
-        _filterType,
         _selectedMonth
-    ) { transactions, type, cal ->
+    ) { transactions, cal ->
         transactions.filter { transaction ->
             val transCal = Calendar.getInstance().apply { timeInMillis = transaction.date }
-            val monthMatch = transCal.get(Calendar.MONTH) == cal.get(Calendar.MONTH) &&
+            transCal.get(Calendar.MONTH) == cal.get(Calendar.MONTH) &&
                     transCal.get(Calendar.YEAR) == cal.get(Calendar.YEAR)
-            val typeMatch = type == null || transaction.type == type
-            monthMatch && typeMatch
         }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val monthIncome: StateFlow<Double> = allMonthTransactions
+        .map { it.filter { tx -> tx.type == TransactionType.INCOME }.sumOf { tx -> tx.amount } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val monthExpense: StateFlow<Double> = allMonthTransactions
+        .map { it.filter { tx -> tx.type == TransactionType.EXPENSE }.sumOf { tx -> tx.amount } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val filteredTransactions: StateFlow<List<Transaction>> = combine(
+        allMonthTransactions,
+        _filterType
+    ) { transactions, type ->
+        if (type == null) transactions else transactions.filter { it.type == type }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setFilterType(type: TransactionType?) { _filterType.value = type }

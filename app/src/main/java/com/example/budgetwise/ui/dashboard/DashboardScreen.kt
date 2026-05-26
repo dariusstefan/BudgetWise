@@ -1,30 +1,37 @@
 package com.example.budgetwise.ui.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.budgetwise.data.model.Transaction
 import com.example.budgetwise.data.model.TransactionType
 import com.example.budgetwise.ui.theme.ExpenseRed
 import com.example.budgetwise.ui.theme.IncomeGreen
 import com.example.budgetwise.util.CurrencyInfo
 import com.example.budgetwise.util.EUR_DEFAULT
+import com.example.budgetwise.util.categoryEmoji
+import com.example.budgetwise.util.categoryIconColor
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -32,7 +39,8 @@ import java.util.*
 @Composable
 fun DashboardScreen(
     viewModel: DashboardViewModel,
-    onAddTransaction: () -> Unit
+    onAddTransaction: () -> Unit,
+    onViewAllTransactions: () -> Unit = {}
 ) {
     val selectedMonthText by viewModel.selectedMonthText.collectAsState()
     val summary by viewModel.balanceSummary.collectAsState()
@@ -55,10 +63,32 @@ fun DashboardScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("BudgetWise") })
+            TopAppBar(
+                title = { Text("BudgetWise", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = {}) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(6.dp)
+                            )
+                        }
+                    }
+                }
+            )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddTransaction) {
+            FloatingActionButton(
+                onClick = onAddTransaction,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Transaction")
             }
         }
@@ -78,9 +108,7 @@ fun DashboardScreen(
                 )
             }
 
-            item {
-                BalanceCard(summary, currencyInfo)
-            }
+            item { BalanceCard(summary, currencyInfo) }
 
             item {
                 if (summary.budget > 0) {
@@ -102,25 +130,49 @@ fun DashboardScreen(
 
             item {
                 Text(
-                    text = "Recent Transactions",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    text = "RECENT TRANSACTIONS",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            items(recentTransactions) { transaction ->
-                TransactionItem(transaction, currencyInfo)
+            if (recentTransactions.isEmpty()) {
+                item {
+                    Text(
+                        text = "No transactions this month",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                items(recentTransactions) { transaction ->
+                    TransactionItem(transaction, currencyInfo)
+                }
+                item {
+                    TextButton(
+                        onClick = onViewAllTransactions,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "View all transactions →",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun MonthPicker(
-    monthText: String,
-    onPrevious: () -> Unit,
-    onNext: () -> Unit
-) {
+fun MonthPicker(monthText: String, onPrevious: () -> Unit, onNext: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -129,7 +181,7 @@ fun MonthPicker(
         IconButton(onClick = onPrevious) {
             Icon(Icons.Default.ChevronLeft, contentDescription = "Previous Month")
         }
-        Text(text = monthText, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+        Text(text = monthText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         IconButton(onClick = onNext) {
             Icon(Icons.Default.ChevronRight, contentDescription = "Next Month")
         }
@@ -140,36 +192,61 @@ fun MonthPicker(
 fun BalanceCard(summary: BalanceSummary, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.Start
         ) {
-            Text(text = "Current Balance", style = MaterialTheme.typography.labelLarge)
+            Text(
+                text = "TOTAL BALANCE",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                letterSpacing = 1.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "%s%.2f".format(currencyInfo.symbol, summary.balance * currencyInfo.rate),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimary
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                SummaryItem("Income", summary.income, IncomeGreen, currencyInfo)
-                SummaryItem("Expenses", summary.expense, ExpenseRed, currencyInfo)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                SummaryChip("↑ INCOME", summary.income, currencyInfo, Modifier.weight(1f))
+                SummaryChip("↓ EXPENSES", summary.expense, currencyInfo, Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-fun SummaryItem(label: String, amount: Double, color: Color, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = label, style = MaterialTheme.typography.labelSmall)
-        Text(
-            text = "%s%.2f".format(currencyInfo.symbol, amount * currencyInfo.rate),
-            color = color,
-            fontWeight = FontWeight.Bold
-        )
+fun SummaryChip(label: String, amount: Double, currencyInfo: CurrencyInfo, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "%s%.0f".format(currencyInfo.symbol, amount * currencyInfo.rate),
+                color = MaterialTheme.colorScheme.onPrimary,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
     }
 }
 
@@ -181,54 +258,104 @@ fun BudgetProgress(
     onEditClick: (() -> Unit)? = null
 ) {
     val progress = (expense / budget).toFloat().coerceIn(0f, 1f)
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = "Monthly Budget", style = MaterialTheme.typography.labelMedium)
-            Row(verticalAlignment = Alignment.CenterVertically) {
+    val pct = (progress * 100).toInt()
+    val remaining = ((budget - expense) * currencyInfo.rate).coerceAtLeast(0.0)
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "%s%.0f / %s%.0f".format(currencyInfo.symbol, expense * currencyInfo.rate, currencyInfo.symbol, budget * currencyInfo.rate),
-                    style = MaterialTheme.typography.labelMedium
+                    text = "Monthly Budget",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
                 )
-                if (onEditClick != null) {
-                    IconButton(onClick = onEditClick, modifier = Modifier.size(20.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit budget", modifier = Modifier.size(14.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "%s%.0f / %s%.0f".format(
+                            currencyInfo.symbol, expense * currencyInfo.rate,
+                            currencyInfo.symbol, budget * currencyInfo.rate
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (onEditClick != null) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        IconButton(onClick = onEditClick, modifier = Modifier.size(20.dp)) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit budget",
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(10.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth(),
+                color = if (progress > 0.9f) ExpenseRed else MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "$pct% used · ${currencyInfo.symbol}${"%.0f".format(remaining)} remaining",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier.fillMaxWidth(),
-            color = if (progress > 0.9f) ExpenseRed else MaterialTheme.colorScheme.primary
-        )
     }
 }
 
 @Composable
 fun TransactionItem(transaction: Transaction, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
-    val dateFormatter = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(text = transaction.category, fontWeight = FontWeight.SemiBold)
-            Text(text = dateFormatter.format(Date(transaction.date)), style = MaterialTheme.typography.bodySmall)
+    val shortDateFormatter = SimpleDateFormat("MMM d", Locale.getDefault())
+    val isIncome = transaction.type == TransactionType.INCOME
+    val amountColor = if (isIncome) IncomeGreen else ExpenseRed
+    val title = if (transaction.note.isNotBlank()) transaction.note else transaction.category
+    val subtitle = "${transaction.category} · ${shortDateFormatter.format(Date(transaction.date))}"
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(categoryIconColor(transaction.category)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = categoryEmoji(transaction.category), fontSize = 20.sp)
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = (if (isIncome) "+ " else "– ") +
+                        "%s%.2f".format(currencyInfo.symbol, transaction.amount * currencyInfo.rate),
+                color = amountColor,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
-        Text(
-            text = (if (transaction.type == TransactionType.INCOME) "+" else "-") +
-                    "%s%.2f".format(currencyInfo.symbol, transaction.amount * currencyInfo.rate),
-            color = if (transaction.type == TransactionType.INCOME) IncomeGreen else ExpenseRed,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
 

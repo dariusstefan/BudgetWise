@@ -42,9 +42,9 @@ fun TransactionItemPreview() {
         TransactionItem(
             transaction = Transaction(
                 amount = 50.0,
-                category = "Food",
+                category = "Food & Groceries",
                 date = System.currentTimeMillis(),
-                note = "Lunch",
+                note = "Weekly shopping",
                 type = TransactionType.EXPENSE
             ),
             currencyInfo = EUR_DEFAULT

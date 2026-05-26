@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BudgetWise — Screen Mockups</title>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="design-canvas.jsx" data-presets="react"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Roboto', sans-serif; background: #1a1a1a; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ── MD3 Green Design Tokens ──────────────────────────────────────────────────
+const C = {
+  primary:          '#2E7D32',
+  primaryContainer: '#C8E6C9',
+  onPrimary:        '#FFFFFF',
+  onPrimaryContainer: '#1B5E20',
+  secondary:        '#558B2F',
+  secondaryContainer: '#DCEDC8',
+  surface:          '#FFFFFF',
+  surfaceVariant:   '#F1F8E9',
+  surfaceContainer: '#F5F5F5',
+  outline:          '#C8C8C8',
+  outlineVariant:   '#E0E0E0',
+  onSurface:        '#1C1B1F',
+  onSurfaceVariant: '#49454F',
+  background:       '#FAFAFA',
+  error:            '#B00020',
+  income:           '#2E7D32',
+  expense:          '#C62828',
+  incomeLight:      '#E8F5E9',
+  expenseLight:     '#FFEBEE',
+};
+
+// ── Shared Primitives ────────────────────────────────────────────────────────
+const T = {
+  display: { fontSize: 28, fontWeight: 700, color: C.onSurface },
+  headline: { fontSize: 20, fontWeight: 700, color: C.onSurface },
+  title: { fontSize: 16, fontWeight: 500, color: C.onSurface },
+  body: { fontSize: 14, fontWeight: 400, color: C.onSurface },
+  label: { fontSize: 12, fontWeight: 500, color: C.onSurfaceVariant },
+  mono: { fontFamily: "'Roboto Mono', monospace" },
+};
+
+const Screen = ({ children, bg = C.background }) => (
+  <div style={{ width: 390, background: bg, minHeight: 780, position: 'relative', overflow: 'hidden', borderRadius: 4 }}>
+    {children}
+  </div>
+);
+
+const TopBar = ({ title, back = false, action = null }) => (
+  <div style={{ background: C.surface, padding: '0 16px', height: 56, display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${C.outlineVariant}` }}>
+    {back && <div style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill={C.onSurface}/></svg>
+    </div>}
+    <span style={{ ...T.title, fontSize: 18, flex: 1 }}>{title}</span>
+    {action}
+  </div>
+);
+
+const BottomNav = ({ active = 'dashboard' }) => {
+  const items = [
+    { id: 'dashboard', label: 'Home', icon: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z' },
+    { id: 'history', label: 'History', icon: 'M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z' },
+    { id: 'recurring', label: 'Recurring', icon: 'M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z' },
+    { id: 'settings', label: 'Settings', icon: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z' },
+  ];
+  return (
+    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 72, background: C.surface, borderTop: `1px solid ${C.outlineVariant}`, display: 'flex', alignItems: 'center' }}>
+      {items.map(item => (
+        <div key={item.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', paddingTop: 8 }}>
+          <div style={{ width: 64, height: 32, borderRadius: 16, background: active === item.id ? C.secondaryContainer : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d={item.icon} fill={active === item.id ? C.primary : C.onSurfaceVariant}/>
+            </svg>
+          </div>
+          <span style={{ fontSize: 11, fontWeight: active === item.id ? 500 : 400, color: active === item.id ? C.primary : C.onSurfaceVariant }}>{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const MonthPicker = ({ month = 'April 2026' }) => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '10px 0' }}>
+    <div style={{ width: 32, height: 32, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill={C.onSurfaceVariant}/></svg>
+    </div>
+    <span style={{ ...T.title, fontSize: 15, minWidth: 110, textAlign: 'center' }}>{month}</span>
+    <div style={{ width: 32, height: 32, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" fill={C.onSurfaceVariant}/></svg>
+    </div>
+  </div>
+);
+
+const Chip = ({ label, active }) => (
+  <div style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${active ? C.primary : C.outline}`, background: active ? C.primaryContainer : 'transparent', cursor: 'pointer' }}>
+    <span style={{ fontSize: 13, fontWeight: 500, color: active ? C.onPrimaryContainer : C.onSurfaceVariant }}>{label}</span>
+  </div>
+);
+
+const AmountBadge = ({ amount, type }) => (
+  <span style={{ fontSize: 13, fontWeight: 500, color: type === 'income' ? C.income : C.expense, background: type === 'income' ? C.incomeLight : C.expenseLight, padding: '2px 8px', borderRadius: 6 }}>
+    {type === 'income' ? '+' : '−'} RON {amount}
+  </span>
+);
+
+const TransactionRow = ({ icon, label, category, amount, type, date }) => (
+  <div style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', gap: 12, borderBottom: `1px solid ${C.outlineVariant}` }}>
+    <div style={{ width: 40, height: 40, borderRadius: 20, background: C.surfaceVariant, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{icon}</div>
+    <div style={{ flex: 1 }}>
+      <div style={{ ...T.body, fontWeight: 500 }}>{label}</div>
+      <div style={{ ...T.label }}>{category} · {date}</div>
+    </div>
+    <AmountBadge amount={amount} type={type} />
+  </div>
+);
+
+const TextField = ({ label, value, hint }) => (
+  <div style={{ marginBottom: 16 }}>
+    <div style={{ fontSize: 12, fontWeight: 500, color: C.primary, marginBottom: 4 }}>{label}</div>
+    <div style={{ border: `1.5px solid ${value ? C.primary : C.outline}`, borderRadius: 8, padding: '12px 14px', background: C.surface }}>
+      <span style={{ ...T.body, color: value ? C.onSurface : C.onSurfaceVariant }}>{value || hint}</span>
+    </div>
+  </div>
+);
+
+const SelectField = ({ label, value }) => (
+  <div style={{ marginBottom: 16 }}>
+    <div style={{ fontSize: 12, fontWeight: 500, color: C.primary, marginBottom: 4 }}>{label}</div>
+    <div style={{ border: `1.5px solid ${C.outline}`, borderRadius: 8, padding: '12px 14px', background: C.surface, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ ...T.body }}>{value}</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7 10l5 5 5-5z" fill={C.onSurfaceVariant}/></svg>
+    </div>
+  </div>
+);
+
+const RadioRow = ({ label, checked }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', cursor: 'pointer' }}>
+    <div style={{ width: 20, height: 20, borderRadius: 10, border: `2px solid ${checked ? C.primary : C.outline}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {checked && <div style={{ width: 10, height: 10, borderRadius: 5, background: C.primary }} />}
+    </div>
+    <span style={{ ...T.body }}>{label}</span>
+  </div>
+);
+
+const SwitchRow = ({ label, subtitle, checked }) => (
+  <div style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderBottom: `1px solid ${C.outlineVariant}`, gap: 12 }}>
+    <div style={{ flex: 1 }}>
+      <div style={{ ...T.body, fontWeight: 500 }}>{label}</div>
+      {subtitle && <div style={{ ...T.label, marginTop: 2 }}>{subtitle}</div>}
+    </div>
+    <div style={{ width: 48, height: 28, borderRadius: 14, background: checked ? C.primary : C.outline, padding: '2px', display: 'flex', alignItems: 'center', justifyContent: checked ? 'flex-end' : 'flex-start' }}>
+      <div style={{ width: 22, height: 22, borderRadius: 11, background: C.surface }} />
+    </div>
+  </div>
+);
+
+const FAB = () => (
+  <div style={{ position: 'absolute', bottom: 88, right: 20, width: 56, height: 56, borderRadius: 16, background: C.primaryContainer, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.18)', cursor: 'pointer' }}>
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill={C.onPrimaryContainer}/></svg>
+  </div>
+);
+
+// ── Screen 1: Dashboard ──────────────────────────────────────────────────────
+const DashboardScreen = () => (
+  <Screen>
+    <TopBar title="BudgetWise" action={
+      <div style={{ width: 36, height: 36, borderRadius: 18, background: C.primaryContainer, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill={C.primary}/></svg>
+      </div>
+    } />
+    <div style={{ padding: '0 16px', paddingBottom: 80 }}>
+      <MonthPicker />
+      <div style={{ background: C.primary, borderRadius: 16, padding: 20, marginBottom: 16, color: C.onPrimary }}>
+        <div style={{ fontSize: 12, fontWeight: 500, opacity: 0.85, marginBottom: 4 }}>TOTAL BALANCE</div>
+        <div style={{ fontSize: 32, fontWeight: 700, ...T.mono, marginBottom: 16 }}>RON 2,340.00</div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>↑ INCOME</div>
+            <div style={{ fontSize: 18, fontWeight: 600, ...T.mono }}>RON 4,500</div>
+          </div>
+          <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>↓ EXPENSES</div>
+            <div style={{ fontSize: 18, fontWeight: 600, ...T.mono }}>RON 2,160</div>
+          </div>
+        </div>
+      </div>
+      <div style={{ background: C.surface, borderRadius: 12, padding: '14px 16px', marginBottom: 16, border: `1px solid ${C.outlineVariant}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+          <span style={{ ...T.label, fontWeight: 600, color: C.onSurface }}>Monthly Budget</span>
+          <span style={{ ...T.label }}>RON 2,160 / 3,000</span>
+        </div>
+        <div style={{ height: 8, borderRadius: 4, background: C.outlineVariant, overflow: 'hidden' }}>
+          <div style={{ width: '72%', height: '100%', background: C.primary, borderRadius: 4 }} />
+        </div>
+        <div style={{ marginTop: 6, fontSize: 11, color: C.onSurfaceVariant }}>72% used · RON 840 remaining</div>
+      </div>
+      <div style={{ ...T.label, marginBottom: 8, paddingLeft: 4 }}>RECENT TRANSACTIONS</div>
+      <div style={{ background: C.surface, borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.outlineVariant}` }}>
+        <TransactionRow icon="🛒" label="Grocery Shopping" category="Food" amount="124.50" type="expense" date="Apr 22" />
+        <TransactionRow icon="💼" label="Salary" category="Income" amount="4,500.00" type="income" date="Apr 20" />
+        <TransactionRow icon="🏠" label="Rent" category="Housing" amount="900.00" type="expense" date="Apr 15" />
+        <TransactionRow icon="⚡" label="Electricity Bill" category="Utilities" amount="85.00" type="expense" date="Apr 14" />
+        <div style={{ padding: '12px 16px', textAlign: 'center' }}>
+          <span style={{ fontSize: 13, color: C.primary, fontWeight: 500 }}>View all transactions →</span>
+        </div>
+      </div>
+    </div>
+    <FAB />
+    <BottomNav active="dashboard" />
+  </Screen>
+);
+
+// ── Screen 2: Add Transaction ────────────────────────────────────────────────
+const AddTransactionScreen = () => (
+  <Screen>
+    <TopBar title="Add Transaction" back />
+    <div style={{ padding: 16, paddingBottom: 80 }}>
+      <div style={{ display: 'flex', background: C.surfaceVariant, borderRadius: 10, padding: 4, marginBottom: 20 }}>
+        <div style={{ flex: 1, padding: '10px 0', borderRadius: 8, background: C.expenseLight, textAlign: 'center', cursor: 'pointer' }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.expense }}>↓ Expense</span>
+        </div>
+        <div style={{ flex: 1, padding: '10px 0', borderRadius: 8, textAlign: 'center', cursor: 'pointer' }}>
+          <span style={{ fontSize: 14, fontWeight: 500, color: C.onSurfaceVariant }}>↑ Income</span>
+        </div>
+      </div>
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{ fontSize: 11, fontWeight: 500, color: C.onSurfaceVariant, marginBottom: 4 }}>AMOUNT (RON)</div>
+        <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4, borderBottom: `2px solid ${C.primary}`, padding: '4px 8px' }}>
+          <span style={{ fontSize: 14, color: C.onSurfaceVariant }}>RON</span>
+          <span style={{ fontSize: 38, fontWeight: 700, ...T.mono, color: C.expense }}>124.50</span>
+        </div>
+      </div>
+      <SelectField label="Category" value="🏠 Food & Groceries" />
+      <TextField label="Note (optional)" value="" hint="e.g. Weekly groceries" />
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: C.primary, marginBottom: 4 }}>Date</div>
+        <div style={{ border: `1.5px solid ${C.outline}`, borderRadius: 8, padding: '12px 14px', background: C.surface, display: 'flex', justifyContent: 'space-between' }}>
+          <span style={{ ...T.body }}>April 22, 2026</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z" fill={C.onSurfaceVariant}/></svg>
+        </div>
+      </div>
+      <div style={{ marginTop: 8, background: C.primary, borderRadius: 10, padding: '14px 0', textAlign: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(46,125,50,0.3)' }}>
+        <span style={{ color: C.onPrimary, fontWeight: 600, fontSize: 15 }}>Save Transaction</span>
+      </div>
+    </div>
+  </Screen>
+);
+
+// ── Screen 3: History ────────────────────────────────────────────────────────
+const HistoryScreen = () => (
+  <Screen>
+    <TopBar title="History" />
+    <div style={{ padding: '0 16px', paddingBottom: 80 }}>
+      <MonthPicker />
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <Chip label="All" active />
+        <Chip label="Income" active={false} />
+        <Chip label="Expenses" active={false} />
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+        <div style={{ flex: 1, background: C.incomeLight, borderRadius: 10, padding: 12 }}>
+          <div style={{ fontSize: 11, color: C.income, fontWeight: 600, marginBottom: 2 }}>INCOME</div>
+          <div style={{ fontSize: 16, fontWeight: 700, ...T.mono, color: C.income }}>RON 4,500</div>
+        </div>
+        <div style={{ flex: 1, background: C.expenseLight, borderRadius: 10, padding: 12 }}>
+          <div style={{ fontSize: 11, color: C.expense, fontWeight: 600, marginBottom: 2 }}>EXPENSES</div>
+          <div style={{ fontSize: 16, fontWeight: 700, ...T.mono, color: C.expense }}>RON 2,160</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: C.onSurfaceVariant, padding: '6px 0 4px' }}>APRIL 22</div>
+      <div style={{ background: C.surface, borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.outlineVariant}`, marginBottom: 12 }}>
+        <TransactionRow icon="🛒" label="Grocery Shopping" category="Food" amount="124.50" type="expense" date="Apr 22" />
+        <TransactionRow icon="🎬" label="Netflix" category="Entertainment" amount="37.00" type="expense" date="Apr 22" />
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: C.onSurfaceVariant, padding: '6px 0 4px' }}>APRIL 20</div>
+      <div style={{ background: C.surface, borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.outlineVariant}`, marginBottom: 12 }}>
+        <TransactionRow icon="💼" label="Salary" category="Income" amount="4,500.00" type="income" date="Apr 20" />
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: C.onSurfaceVariant, padding: '6px 0 4px' }}>APRIL 15</div>
+      <div style={{ background: C.surface, borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.outlineVariant}`, marginBottom: 12 }}>
+        <TransactionRow icon="🏠" label="Rent" category="Housing" amount="900.00" type="expense" date="Apr 15" />
+        <TransactionRow icon="⚡" label="Electricity Bill" category="Utilities" amount="85.00" type="expense" date="Apr 15" />
+        <TransactionRow icon="💧" label="Water Bill" category="Utilities" amount="42.00" type="expense" date="Apr 15" />
+      </div>
+    </div>
+    <BottomNav active="history" />
+  </Screen>
+);
+
+// ── Screen 4: Recurring ──────────────────────────────────────────────────────
+const RecurringRow = ({ icon, label, amount, type, freq }) => (
+  <div style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', gap: 12, borderBottom: `1px solid ${C.outlineVariant}` }}>
+    <div style={{ width: 40, height: 40, borderRadius: 20, background: type === 'income' ? C.incomeLight : C.expenseLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{icon}</div>
+    <div style={{ flex: 1 }}>
+      <div style={{ ...T.body, fontWeight: 500 }}>{label}</div>
+      <div style={{ display: 'inline-block', marginTop: 3, background: C.surfaceVariant, borderRadius: 4, padding: '1px 7px' }}>
+        <span style={{ fontSize: 11, color: C.onSurfaceVariant, fontWeight: 500 }}>{freq}</span>
+      </div>
+    </div>
+    <AmountBadge amount={amount} type={type} />
+  </div>
+);
+
+const RecurringScreen = () => (
+  <Screen>
+    <TopBar title="Recurring" action={
+      <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill={C.primary}/></svg>
+      </div>
+    } />
+    <div style={{ padding: '0 0 80px' }}>
+      <div style={{ display: 'flex', gap: 10, margin: '12px 16px' }}>
+        <div style={{ flex: 1, background: C.incomeLight, borderRadius: 10, padding: 12 }}>
+          <div style={{ fontSize: 11, color: C.income, fontWeight: 600, marginBottom: 2 }}>RECURRING IN</div>
+          <div style={{ fontSize: 15, fontWeight: 700, ...T.mono, color: C.income }}>RON 4,500/mo</div>
+        </div>
+        <div style={{ flex: 1, background: C.expenseLight, borderRadius: 10, padding: 12 }}>
+          <div style={{ fontSize: 11, color: C.expense, fontWeight: 600, marginBottom: 2 }}>RECURRING OUT</div>
+          <div style={{ fontSize: 15, fontWeight: 700, ...T.mono, color: C.expense }}>RON 1,127/mo</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: C.onSurfaceVariant, padding: '6px 16px 4px' }}>INCOME</div>
+      <div style={{ background: C.surface, borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.outlineVariant}`, margin: '0 16px 14px' }}>
+        <RecurringRow icon="💼" label="Salary" amount="4,500.00" type="income" freq="Monthly · 20th" />
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: C.onSurfaceVariant, padding: '6px 16px 4px' }}>EXPENSES</div>
+      <div style={{ background: C.surface, borderRadius: 12, overflow: 'hidden', border: `1px solid ${C.outlineVariant}`, margin: '0 16px 14px' }}>
+        <RecurringRow icon="🏠" label="Rent" amount="900.00" type="expense" freq="Monthly · 1st" />
+        <RecurringRow icon="🎬" label="Netflix" amount="37.00" type="expense" freq="Monthly · 22nd" />
+        <RecurringRow icon="🎵" label="Spotify" amount="25.00" type="expense" freq="Monthly · 5th" />
+        <RecurringRow icon="🏋️" label="Gym" amount="100.00" type="expense" freq="Monthly · 1st" />
+        <RecurringRow icon="☕" label="Morning Coffee" amount="13.00" type="expense" freq="Weekly · Mon" />
+      </div>
+      <div style={{ margin: '0 16px', background: C.surfaceVariant, borderRadius: 12, border: `1.5px dashed ${C.outline}`, padding: '16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+        <div style={{ width: 36, height: 36, borderRadius: 18, background: C.primaryContainer, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill={C.primary}/></svg>
+        </div>
+        <span style={{ fontSize: 14, fontWeight: 500, color: C.primary }}>Add recurring transaction</span>
+      </div>
+    </div>
+    <BottomNav active="recurring" />
+  </Screen>
+);
+
+// ── Screen 5: Settings ───────────────────────────────────────────────────────
+const SettingsScreen = () => (
+  <Screen>
+    <TopBar title="Settings" />
+    <div style={{ paddingBottom: 80 }}>
+      <div style={{ padding: '16px 16px 6px', fontSize: 11, fontWeight: 600, color: C.primary, letterSpacing: 1 }}>DISPLAY</div>
+      <div style={{ background: C.surface, border: `1px solid ${C.outlineVariant}`, margin: '0 16px', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+        <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.outlineVariant}` }}>
+          <div style={{ ...T.label, fontWeight: 600, color: C.onSurface, marginBottom: 8 }}>Display Currency</div>
+          <div style={{ border: `1px solid ${C.outline}`, borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ ...T.body }}>🇷🇴 Romanian Leu (RON)</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7 10l5 5 5-5z" fill={C.onSurfaceVariant}/></svg>
+          </div>
+          <div style={{ marginTop: 6, fontSize: 11, color: C.onSurfaceVariant }}>Rates updated via Retrofit · last sync 5 min ago</div>
+        </div>
+        <SwitchRow label="Dark Mode" subtitle="Switch to dark theme" checked={false} />
+      </div>
+      <div style={{ padding: '6px 16px', fontSize: 11, fontWeight: 600, color: C.primary, letterSpacing: 1 }}>LANGUAGE</div>
+      <div style={{ background: C.surface, border: `1px solid ${C.outlineVariant}`, margin: '6px 16px', borderRadius: 12, overflow: 'hidden', padding: '8px 16px', marginBottom: 16 }}>
+        <RadioRow label="English" checked={true} />
+        <RadioRow label="Română" checked={false} />
+        <RadioRow label="Deutsch" checked={false} />
+      </div>
+      <div style={{ padding: '6px 16px', fontSize: 11, fontWeight: 600, color: C.primary, letterSpacing: 1 }}>BUDGET</div>
+      <div style={{ background: C.surface, border: `1px solid ${C.outlineVariant}`, margin: '6px 16px', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+        <div style={{ padding: '14px 16px' }}>
+          <div style={{ ...T.label, fontWeight: 600, color: C.onSurface, marginBottom: 8 }}>Monthly Budget Limit</div>
+          <div style={{ border: `1.5px solid ${C.primary}`, borderRadius: 8, padding: '12px 14px', display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ ...T.body, ...T.mono }}>RON 3,000.00</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill={C.primary}/></svg>
+          </div>
+        </div>
+      </div>
+      <div style={{ padding: '6px 16px', fontSize: 11, fontWeight: 600, color: C.primary, letterSpacing: 1 }}>ABOUT</div>
+      <div style={{ background: C.surface, border: `1px solid ${C.outlineVariant}`, margin: '6px 16px', borderRadius: 12, overflow: 'hidden' }}>
+        <SwitchRow label="Notifications" subtitle="Budget alerts and reminders" checked={true} />
+        <div style={{ padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ ...T.body }}>Version</span>
+          <span style={{ ...T.label }}>1.0.0</span>
+        </div>
+      </div>
+    </div>
+    <BottomNav active="settings" />
+  </Screen>
+);
+
+// ── Canvas Assembly ──────────────────────────────────────────────────────────
+const App = () => (
+  <DesignCanvas title="BudgetWise — Screen Mockups">
+    <DCSection id="screens" title="All Screens">
+      <DCArtboard id="s1" label="Dashboard"       width={390} height={780}><DashboardScreen /></DCArtboard>
+      <DCArtboard id="s2" label="Add Transaction" width={390} height={780}><AddTransactionScreen /></DCArtboard>
+      <DCArtboard id="s3" label="History"         width={390} height={780}><HistoryScreen /></DCArtboard>
+      <DCArtboard id="s4" label="Recurring"       width={390} height={780}><RecurringScreen /></DCArtboard>
+      <DCArtboard id="s5" label="Settings"        width={390} height={780}><SettingsScreen /></DCArtboard>
+    </DCSection>
+  </DesignCanvas>
+);
+
+function init() {
+  if (typeof DesignCanvas === 'undefined' || typeof DCSection === 'undefined') {
+    setTimeout(init, 50);
+    return;
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+}
+init();
+</script>
+</body>
+</html>
