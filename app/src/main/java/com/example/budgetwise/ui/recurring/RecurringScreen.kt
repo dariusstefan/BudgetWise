@@ -48,6 +48,20 @@ import java.util.*
 private val DAY_LABELS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 private val dateFormatter = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
 
+private fun monthlyMultiplier(recurring: RecurringTransaction): Int {
+    if (recurring.frequency == Frequency.MONTHLY) return 1
+    val dow = recurring.dayOfWeek ?: 1
+    val calDow = if (dow == 7) Calendar.SUNDAY else dow + 1
+    val now = Calendar.getInstance()
+    val cal = Calendar.getInstance().apply {
+        set(now.get(Calendar.YEAR), now.get(Calendar.MONTH), 1)
+    }
+    return (1..cal.getActualMaximum(Calendar.DAY_OF_MONTH)).count { day ->
+        cal.set(Calendar.DAY_OF_MONTH, day)
+        cal.get(Calendar.DAY_OF_WEEK) == calDow
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecurringScreen(
@@ -78,10 +92,10 @@ fun RecurringScreen(
 
     val totalIn = recurringTransactions
         .filter { it.type == TransactionType.INCOME }
-        .sumOf { it.amount * currencyInfo.rate }
+        .sumOf { it.amount * monthlyMultiplier(it) * currencyInfo.rate }
     val totalOut = recurringTransactions
         .filter { it.type == TransactionType.EXPENSE }
-        .sumOf { it.amount * currencyInfo.rate }
+        .sumOf { it.amount * monthlyMultiplier(it) * currencyInfo.rate }
 
     var sheetType by remember { mutableStateOf<TransactionType?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)

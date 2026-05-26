@@ -134,18 +134,28 @@ class DashboardViewModel(
             add(Calendar.MONTH, 1)
             add(Calendar.MILLISECOND, -1)
         }.timeInMillis
-        val afterMillis = maxOf(now, startOfMonth - 1)
 
-        recurrings.mapNotNull { recurring ->
-            val nextDue = nextDueDate(recurring, afterMillis) ?: return@mapNotNull null
-            if (nextDue > endOfMonth) return@mapNotNull null
-            IncomingTransaction(
-                label = recurring.label,
-                category = recurring.category,
-                amount = recurring.amount,
-                type = recurring.type,
-                dueDate = nextDue
-            )
+        // Start scanning from today or from start of month, whichever is later
+        val scanFrom = maxOf(now, startOfMonth - 1)
+
+        recurrings.flatMap { recurring ->
+            val dueDates = mutableListOf<Long>()
+            var after = scanFrom
+            while (true) {
+                val next = nextDueDate(recurring, after) ?: break
+                if (next > endOfMonth) break
+                dueDates.add(next)
+                after = next // nextDueDate uses strictly-after logic, so this advances
+            }
+            dueDates.map { dueDate ->
+                IncomingTransaction(
+                    label = recurring.label,
+                    category = recurring.category,
+                    amount = recurring.amount,
+                    type = recurring.type,
+                    dueDate = dueDate
+                )
+            }
         }.sortedBy { it.dueDate }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
