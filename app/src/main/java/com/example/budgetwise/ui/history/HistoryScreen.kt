@@ -1,6 +1,7 @@
 package com.example.budgetwise.ui.history
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -94,7 +95,7 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
                     amount = monthIncome * currencyInfo.rate,
                     symbol = currencyInfo.symbol,
                     amountColor = IncomeGreen,
-                    backgroundColor = IncomeSurface,
+                    backgroundColor = MaterialTheme.colorScheme.background,
                     modifier = Modifier.weight(1f)
                 )
                 MonthlySummaryCard(
@@ -102,7 +103,7 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
                     amount = monthExpense * currencyInfo.rate,
                     symbol = currencyInfo.symbol,
                     amountColor = ExpenseRed,
-                    backgroundColor = ExpenseSurface,
+                    backgroundColor = MaterialTheme.colorScheme.background,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -142,7 +143,7 @@ fun MonthlySummaryCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.medium),
         shape = MaterialTheme.shapes.medium,
         color = backgroundColor
     ) {
