@@ -2,6 +2,7 @@ package com.example.budgetwise.ui.dashboard
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -114,9 +115,13 @@ fun DashboardScreen(
             item { BalanceCard(summary, currencyInfo) }
 
             item {
+                val incomingExpense = incomingTransactions
+                    .filter { it.type == TransactionType.EXPENSE }
+                    .sumOf { it.amount } // base currency — BudgetProgress applies the rate
                 when {
                     summary.budget > 0 -> BudgetProgress(
                         expense = summary.expense,
+                        incomingExpense = incomingExpense,
                         budget = summary.budget,
                         currencyInfo = currencyInfo,
                         onEditClick = { showBudgetDialog = true }
@@ -305,13 +310,18 @@ fun SummaryChip(label: String, amount: Double, currencyInfo: CurrencyInfo, modif
 @Composable
 fun BudgetProgress(
     expense: Double,
+    incomingExpense: Double = 0.0,
     budget: Double,
     currencyInfo: CurrencyInfo = EUR_DEFAULT,
     onEditClick: (() -> Unit)? = null
 ) {
-    val progress = (expense / budget).toFloat().coerceIn(0f, 1f)
-    val pct = (progress * 100).toInt()
-    val remaining = ((budget - expense) * currencyInfo.rate).coerceAtLeast(0.0)
+    val spentFraction = (expense / budget).toFloat().coerceIn(0f, 1f)
+    val incomingFraction = ((incomingExpense / budget).toFloat()).coerceIn(0f, 1f - spentFraction)
+    val pct = (spentFraction * 100).toInt()
+    val remaining = ((budget - expense - incomingExpense) * currencyInfo.rate).coerceAtLeast(0.0)
+    val overBudget = (expense + incomingExpense) > budget
+    val spentColor = if (spentFraction > 0.9f || overBudget) ExpenseRed else MaterialTheme.colorScheme.primary
+    val incomingColor = Color(0xFF26C6DA) // fixed teal, visible in both themes
 
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -350,18 +360,66 @@ fun BudgetProgress(
                 }
             }
             Spacer(modifier = Modifier.height(10.dp))
-            LinearProgressIndicator(
-                progress = { progress },
+            // Two-segment bar: spent + incoming
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val totalWidth = maxWidth
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    if (spentFraction > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .width(totalWidth * spentFraction)
+                                .fillMaxHeight()
+                                .background(spentColor)
+                        )
+                    }
+                    if (incomingFraction > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .width(totalWidth * incomingFraction)
+                                .fillMaxHeight()
+                                .background(incomingColor)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                color = if (progress > 0.9f) ExpenseRed else MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "$pct% used · ${currencyInfo.symbol}${"%.0f".format(remaining)} remaining",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "$pct% spent",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (incomingExpense > 0.0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(incomingColor)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${currencyInfo.symbol}${"%.0f".format(incomingExpense * currencyInfo.rate)} incoming",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Text(
+                    text = "${currencyInfo.symbol}${"%.0f".format(remaining)} left",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
