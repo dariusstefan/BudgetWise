@@ -9,6 +9,9 @@ import com.example.budgetwise.data.model.RecurringTransaction
 import com.example.budgetwise.data.model.Transaction
 import kotlinx.coroutines.flow.Flow
 
+// Room generates parameterized queries for all @Query, @Insert, @Delete operations,
+// preventing SQL injection at the framework level. InputSanitizer provides an additional
+// defense-in-depth layer by stripping dangerous characters before data reaches the DAO.
 @Dao
 interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY date DESC")

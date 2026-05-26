@@ -8,6 +8,7 @@ import com.example.budgetwise.data.model.TransactionType
 import com.example.budgetwise.data.preferences.PreferencesRepository
 import com.example.budgetwise.util.CurrencyInfo
 import com.example.budgetwise.util.EUR_DEFAULT
+import com.example.budgetwise.util.InputSanitizer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -63,15 +64,15 @@ class AddTransactionViewModel(
     fun onDateChange(value: Long) { _date.value = value }
 
     fun saveTransaction(onSuccess: () -> Unit) {
-        val amountValue = _amount.value.toDoubleOrNull() ?: return
+        val amountValue = InputSanitizer.sanitizeAmount(_amount.value) ?: return
         val rate = _currencyInfo.value.rate
         viewModelScope.launch {
             repository.insertTransaction(
                 Transaction(
                     amount = amountValue / rate,
-                    category = _category.value,
+                    category = InputSanitizer.sanitizeLabel(_category.value),
                     date = _date.value,
-                    note = _note.value,
+                    note = InputSanitizer.sanitizeLabel(_note.value),
                     type = _type.value
                 )
             )

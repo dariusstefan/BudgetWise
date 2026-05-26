@@ -9,6 +9,7 @@ import com.example.budgetwise.data.model.TransactionType
 import com.example.budgetwise.data.preferences.PreferencesRepository
 import com.example.budgetwise.util.CurrencyInfo
 import com.example.budgetwise.util.EUR_DEFAULT
+import com.example.budgetwise.util.InputSanitizer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -84,7 +85,8 @@ class RecurringViewModel(
     fun onEndDateChange(value: Long) { _endDate.value = value }
 
     fun addRecurring() {
-        val amountValue = _amount.value.toDoubleOrNull() ?: return
+        val amountValue = InputSanitizer.sanitizeAmount(_amount.value) ?: return
+        if (!InputSanitizer.isValidLabel(_label.value)) return
         val rate = _currencyInfo.value.rate
         val startOfMonth = java.util.Calendar.getInstance().apply {
             set(java.util.Calendar.DAY_OF_MONTH, 1)
@@ -97,8 +99,8 @@ class RecurringViewModel(
             repository.insertRecurringTransaction(
                 RecurringTransaction(
                     amount = amountValue / rate,
-                    label = _label.value,
-                    category = _category.value,
+                    label = InputSanitizer.sanitizeLabel(_label.value),
+                    category = InputSanitizer.sanitizeLabel(_category.value),
                     frequency = _frequency.value,
                     type = _type.value,
                     startDate = startOfMonth,
