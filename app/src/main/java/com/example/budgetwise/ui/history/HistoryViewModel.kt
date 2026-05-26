@@ -55,6 +55,10 @@ class HistoryViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val monthHasTransactions: StateFlow<Boolean> = allMonthTransactions
+        .map { it.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val monthIncome: StateFlow<Double> = allMonthTransactions
         .map { it.filter { tx -> tx.type == TransactionType.INCOME }.sumOf { tx -> tx.amount } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)

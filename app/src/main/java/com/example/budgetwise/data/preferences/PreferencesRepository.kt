@@ -19,6 +19,7 @@ class PreferencesRepository(private val context: Context) {
         val CURRENCY_KEY = stringPreferencesKey("selected_currency")
         val DARK_MODE_KEY = booleanPreferencesKey("is_dark_mode")
         val DEFAULT_BUDGET_KEY = doublePreferencesKey("default_budget")
+        val DEFAULT_BUDGET_SET_AT_KEY = androidx.datastore.preferences.core.longPreferencesKey("default_budget_set_at")
     }
 
     val selectedCurrency: Flow<String> = context.dataStore.data
@@ -38,7 +39,15 @@ class PreferencesRepository(private val context: Context) {
     val defaultBudget: Flow<Double> = context.dataStore.data
         .map { prefs -> prefs[DEFAULT_BUDGET_KEY] ?: 0.0 }
 
+    val defaultBudgetSetAt: Flow<Long> = context.dataStore.data
+        .map { prefs -> prefs[DEFAULT_BUDGET_SET_AT_KEY] ?: 0L }
+
     suspend fun setDefaultBudget(amount: Double) {
-        context.dataStore.edit { prefs -> prefs[DEFAULT_BUDGET_KEY] = amount }
+        context.dataStore.edit { prefs ->
+            prefs[DEFAULT_BUDGET_KEY] = amount
+            if ((prefs[DEFAULT_BUDGET_SET_AT_KEY] ?: 0L) == 0L) {
+                prefs[DEFAULT_BUDGET_SET_AT_KEY] = System.currentTimeMillis()
+            }
+        }
     }
 }

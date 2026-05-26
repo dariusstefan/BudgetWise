@@ -111,15 +111,14 @@ fun DashboardScreen(
             item { BalanceCard(summary, currencyInfo) }
 
             item {
-                if (summary.budget > 0) {
-                    BudgetProgress(
+                when {
+                    summary.budget > 0 -> BudgetProgress(
                         expense = summary.expense,
                         budget = summary.budget,
                         currencyInfo = currencyInfo,
                         onEditClick = { showBudgetDialog = true }
                     )
-                } else {
-                    OutlinedButton(
+                    summary.hasTransactions || summary.hasExplicitBudget -> OutlinedButton(
                         onClick = { showBudgetDialog = true },
                         modifier = Modifier.fillMaxWidth()
                     ) {

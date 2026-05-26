@@ -73,19 +73,38 @@ class DashboardViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val defaultBudget = preferencesRepository.defaultBudget
+    private val defaultBudgetSetAt = preferencesRepository.defaultBudgetSetAt
+
+    private val defaultBudgetInfo = combine(defaultBudget, defaultBudgetSetAt) { amount, setAt ->
+        Pair(amount, setAt)
+    }
 
     val balanceSummary = combine(
         transactionsForSelectedMonth,
         monthBudget,
         repository.allRecurringTransactions,
         _selectedMonth,
-        defaultBudget
-    ) { transactions, budget, recurring, calendar, defBudget ->
+        defaultBudgetInfo
+    ) { transactions, budget, recurring, calendar, (defBudget, budgetSetAt) ->
+        val startOfMonth = Calendar.getInstance().apply {
+            set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), 1, 0, 0, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
         val endOfMonth = Calendar.getInstance().apply {
             set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), 1)
             add(Calendar.MONTH, 1)
             add(Calendar.MILLISECOND, -1)
         }.timeInMillis
+
+        val budgetSetMonth = if (budgetSetAt > 0L) {
+            Calendar.getInstance().apply {
+                timeInMillis = budgetSetAt
+                set(Calendar.DAY_OF_MONTH, 1)
+                set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+        } else Long.MAX_VALUE
+        val effectiveDefaultBudget = if (startOfMonth >= budgetSetMonth) defBudget else 0.0
 
         val transIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
         val transExpense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
@@ -101,7 +120,9 @@ class DashboardViewModel(
             balance = totalIncome - totalExpense,
             income = totalIncome,
             expense = totalExpense,
-            budget = budget?.budgetAmount ?: defBudget
+            budget = budget?.budgetAmount ?: effectiveDefaultBudget,
+            hasExplicitBudget = budget != null,
+            hasTransactions = transactions.isNotEmpty()
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BalanceSummary())
 
@@ -134,5 +155,7 @@ data class BalanceSummary(
     val balance: Double = 0.0,
     val income: Double = 0.0,
     val expense: Double = 0.0,
-    val budget: Double = 0.0
+    val budget: Double = 0.0,
+    val hasExplicitBudget: Boolean = false,
+    val hasTransactions: Boolean = false
 )

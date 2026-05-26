@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.budgetwise.data.model.Transaction
@@ -38,6 +39,7 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
     val currencyInfo by viewModel.currencyInfo.collectAsState()
     val monthIncome by viewModel.monthIncome.collectAsState()
     val monthExpense by viewModel.monthExpense.collectAsState()
+    val monthHasTransactions by viewModel.monthHasTransactions.collectAsState()
 
     val monthFormatter = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
     val groupKeyFormatter = SimpleDateFormat("MMMM d", Locale.getDefault())
@@ -85,47 +87,75 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
                 )
             }
 
-            // Monthly summary cards
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                MonthlySummaryCard(
-                    label = "INCOME",
-                    amount = monthIncome * currencyInfo.rate,
-                    symbol = currencyInfo.symbol,
-                    amountColor = IncomeGreen,
-                    backgroundColor = MaterialTheme.colorScheme.background,
-                    modifier = Modifier.weight(1f)
-                )
-                MonthlySummaryCard(
-                    label = "EXPENSES",
-                    amount = monthExpense * currencyInfo.rate,
-                    symbol = currencyInfo.symbol,
-                    amountColor = ExpenseRed,
-                    backgroundColor = MaterialTheme.colorScheme.background,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            if (!monthHasTransactions) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No transactions for this period",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                // Monthly summary cards
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MonthlySummaryCard(
+                        label = "INCOME",
+                        amount = monthIncome * currencyInfo.rate,
+                        symbol = currencyInfo.symbol,
+                        amountColor = IncomeGreen,
+                        backgroundColor = MaterialTheme.colorScheme.background,
+                        modifier = Modifier.weight(1f)
+                    )
+                    MonthlySummaryCard(
+                        label = "EXPENSES",
+                        amount = monthExpense * currencyInfo.rate,
+                        symbol = currencyInfo.symbol,
+                        amountColor = ExpenseRed,
+                        backgroundColor = MaterialTheme.colorScheme.background,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                grouped.forEach { (dateLabel, dayTransactions) ->
-                    item(key = dateLabel) {
-                        Text(
-                            text = dateLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                        )
-                    }
-                    items(dayTransactions, key = { it.id }) { transaction ->
-                        SwipeToDeleteTransactionItem(
-                            transaction = transaction,
-                            currencyInfo = currencyInfo,
-                            onDelete = { viewModel.deleteTransaction(transaction) }
-                        )
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (transactions.isEmpty()) {
+                        item {
+                            Text(
+                                text = "No ${if (filterType?.name?.lowercase() == "income") "income" else "expenses"} this month",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        grouped.forEach { (dateLabel, dayTransactions) ->
+                            item(key = dateLabel) {
+                                Text(
+                                    text = dateLabel,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                                )
+                            }
+                            items(dayTransactions, key = { it.id }) { transaction ->
+                                SwipeToDeleteTransactionItem(
+                                    transaction = transaction,
+                                    currencyInfo = currencyInfo,
+                                    onDelete = { viewModel.deleteTransaction(transaction) }
+                                )
+                            }
+                        }
                     }
                 }
             }
