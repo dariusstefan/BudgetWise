@@ -25,7 +25,8 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val DarkColorSchemeUpdated = darkColorScheme(
-    primary = Green80,
+    primary = Green40,
+    onPrimary = Color.White,
     secondary = GreenGrey80,
     tertiary = Teal80,
     primaryContainer = Color(0xFF1B4332),
@@ -48,7 +49,7 @@ fun BudgetWiseTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
         }
     }
 
