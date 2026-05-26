@@ -43,3 +43,6 @@ Thumbs.db
 # NDK/CMake
 .externalNativeBuild/
 .cxx/
+
+# Claude AI
+.claude/
