@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,6 +52,7 @@ fun AddTransactionScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     val categories = listOf("Food & Groceries", "Housing", "Salary", "Entertainment", "Transport", "Shopping", "Utilities", "Others")
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
 
     val isExpense = type == TransactionType.EXPENSE
     val amountColor = if (isExpense) ExpenseRed else IncomeGreen
@@ -135,6 +138,7 @@ fun AddTransactionScreen(
             }
 
             // Amount section with label + large BasicTextField + underline
+            var amountFocused by remember { mutableStateOf(false) }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
@@ -161,6 +165,7 @@ fun AddTransactionScreen(
                     BasicTextField(
                         value = amount,
                         onValueChange = { viewModel.onAmountChange(it) },
+                        modifier = Modifier.onFocusChanged { amountFocused = it.isFocused },
                         textStyle = TextStyle(
                             fontSize = 48.sp,
                             fontWeight = FontWeight.Bold,
@@ -184,7 +189,7 @@ fun AddTransactionScreen(
                         }
                     )
                 }
-                if (amount.isNotEmpty()) {
+                if (amount.isNotEmpty() && amountFocused) {
                     Spacer(modifier = Modifier.height(4.dp))
                     HorizontalDivider(
                         modifier = Modifier.fillMaxWidth(0.7f),
@@ -204,7 +209,7 @@ fun AddTransactionScreen(
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { Text("▼") }
                 )
-                Box(modifier = Modifier.matchParentSize().clickable { showCategoryMenu = true })
+                Box(modifier = Modifier.matchParentSize().clickable { focusManager.clearFocus(); showCategoryMenu = true })
                 DropdownMenu(expanded = showCategoryMenu, onDismissRequest = { showCategoryMenu = false }) {
                     categories.forEach { cat ->
                         DropdownMenuItem(
