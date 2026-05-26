@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
@@ -56,6 +57,9 @@ fun AddTransactionScreen(
 
     val isExpense = type == TransactionType.EXPENSE
     val amountColor = if (isExpense) ExpenseRed else IncomeGreen
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val selectedExpenseBg = if (isDark) MaterialTheme.colorScheme.background else ExpenseSurface
+    val selectedIncomeBg = if (isDark) MaterialTheme.colorScheme.background else IncomeSurface
 
     if (showDatePicker) {
         DisposableEffect(Unit) {
@@ -110,7 +114,7 @@ fun AddTransactionScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .background(if (isExpense) ExpenseSurface else Color.Transparent)
+                        .background(if (isExpense) selectedExpenseBg else Color.Transparent)
                         .clickable { viewModel.onTypeChange(TransactionType.EXPENSE) },
                     contentAlignment = Alignment.Center
                 ) {
@@ -125,7 +129,7 @@ fun AddTransactionScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .background(if (!isExpense) IncomeSurface else Color.Transparent)
+                        .background(if (!isExpense) selectedIncomeBg else Color.Transparent)
                         .clickable { viewModel.onTypeChange(TransactionType.INCOME) },
                     contentAlignment = Alignment.Center
                 ) {
