@@ -59,6 +59,7 @@ fun AddTransactionScreen(
             val calendar = Calendar.getInstance().apply { timeInMillis = date }
             val dialog = DatePickerDialog(
                 context,
+                com.example.budgetwise.R.style.DatePickerTheme,
                 { _, year, month, day ->
                     val cal = Calendar.getInstance()
                     cal.set(year, month, day)
@@ -164,12 +165,12 @@ fun AddTransactionScreen(
                             fontSize = 48.sp,
                             fontWeight = FontWeight.Bold,
                             color = amountColor,
-                            textAlign = TextAlign.Start
+                            textAlign = TextAlign.Center
                         ),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         decorationBox = { innerTextField ->
-                            Box {
+                            Box(contentAlignment = Alignment.Center) {
                                 if (amount.isEmpty()) {
                                     Text(
                                         "0.00",
@@ -183,12 +184,14 @@ fun AddTransactionScreen(
                         }
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                HorizontalDivider(
-                    modifier = Modifier.fillMaxWidth(0.7f),
-                    color = amountColor,
-                    thickness = 2.dp
-                )
+                if (amount.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    HorizontalDivider(
+                        modifier = Modifier.fillMaxWidth(0.7f),
+                        color = amountColor,
+                        thickness = 2.dp
+                    )
+                }
             }
 
             // Category
@@ -199,10 +202,9 @@ fun AddTransactionScreen(
                     label = { Text("Category") },
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = {
-                        IconButton(onClick = { showCategoryMenu = true }) { Text("▼") }
-                    }
+                    trailingIcon = { Text("▼") }
                 )
+                Box(modifier = Modifier.matchParentSize().clickable { showCategoryMenu = true })
                 DropdownMenu(expanded = showCategoryMenu, onDismissRequest = { showCategoryMenu = false }) {
                     categories.forEach { cat ->
                         DropdownMenuItem(

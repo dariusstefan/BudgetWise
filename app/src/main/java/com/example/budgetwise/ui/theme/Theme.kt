@@ -12,20 +12,28 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Green80,
-    secondary = GreenGrey80,
-    tertiary = Teal80,
-    primaryContainer = Color(0xFF1B4332),
-    onPrimaryContainer = Color(0xFFD1FAE5)
-)
-
 private val LightColorScheme = lightColorScheme(
     primary = Green40,
     secondary = GreenGrey40,
     tertiary = Teal40,
     primaryContainer = Color(0xFFC8E6C9),
-    onPrimaryContainer = Color(0xFF1B4332)
+    onPrimaryContainer = Color(0xFF1B4332),
+    secondaryContainer = Color(0xFFD7EDDA),
+    onSecondaryContainer = Color(0xFF1B4332),
+    tertiaryContainer = Color(0xFFB2DFDB),
+    onTertiaryContainer = Color(0xFF004D40)
+)
+
+private val DarkColorSchemeUpdated = darkColorScheme(
+    primary = Green80,
+    secondary = GreenGrey80,
+    tertiary = Teal80,
+    primaryContainer = Color(0xFF1B4332),
+    onPrimaryContainer = Color(0xFFD1FAE5),
+    secondaryContainer = Color(0xFF2E5C38),
+    onSecondaryContainer = Color(0xFFB7DFBC),
+    tertiaryContainer = Color(0xFF00574B),
+    onTertiaryContainer = Color(0xFFB2DFDB)
 )
 
 @Composable
@@ -33,7 +41,7 @@ fun BudgetWiseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = if (darkTheme) DarkColorSchemeUpdated else LightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {

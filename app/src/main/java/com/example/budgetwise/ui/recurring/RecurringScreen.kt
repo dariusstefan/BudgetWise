@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
 import com.example.budgetwise.data.model.Frequency
 import com.example.budgetwise.data.model.RecurringTransaction
 import com.example.budgetwise.data.model.TransactionType
@@ -35,6 +37,13 @@ fun RecurringScreen(
 
     var showFrequencyMenu by remember { mutableStateOf(false) }
 
+    val totalIn = recurringTransactions
+        .filter { it.type == TransactionType.INCOME }
+        .sumOf { it.amount * currencyInfo.rate }
+    val totalOut = recurringTransactions
+        .filter { it.type == TransactionType.EXPENSE }
+        .sumOf { it.amount * currencyInfo.rate }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Recurring Transactions") })
@@ -47,6 +56,23 @@ fun RecurringScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                RecurringSummaryCard(
+                    label = "RECURRING IN",
+                    amount = totalIn,
+                    symbol = currencyInfo.symbol,
+                    color = IncomeGreen,
+                    modifier = Modifier.weight(1f)
+                )
+                RecurringSummaryCard(
+                    label = "RECURRING OUT",
+                    amount = totalOut,
+                    symbol = currencyInfo.symbol,
+                    color = ExpenseRed,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
             Card {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Add New Recurring", style = MaterialTheme.typography.titleSmall)
@@ -101,6 +127,27 @@ fun RecurringScreen(
                     RecurringItem(recurring = recurring, currencyInfo = currencyInfo, onDelete = { viewModel.deleteRecurring(recurring) })
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun RecurringSummaryCard(label: String, amount: Double, symbol: String, color: Color, modifier: Modifier = Modifier) {
+    Card(modifier = modifier) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 0.5.sp
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "%s%.2f".format(symbol, amount),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
         }
     }
 }

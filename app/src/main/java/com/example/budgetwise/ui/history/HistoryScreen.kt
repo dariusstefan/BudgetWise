@@ -1,5 +1,6 @@
 package com.example.budgetwise.ui.history
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -164,26 +165,46 @@ fun MonthlySummaryCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SwipeToDeleteTransactionItem(
     transaction: Transaction,
     currencyInfo: CurrencyInfo = EUR_DEFAULT,
     onDelete: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    val state = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            } else false
+        },
+        positionalThreshold = { totalDistance -> totalDistance * 0.5f }
+    )
+
+    SwipeToDismissBox(
+        state = state,
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 4.dp)
+                    .background(
+                        color = ExpenseRed,
+                        shape = MaterialTheme.shapes.medium
+                    ),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = androidx.compose.ui.graphics.Color.White,
+                    modifier = Modifier.padding(end = 20.dp)
+                )
+            }
+        }
     ) {
-        Box(modifier = Modifier.weight(1f)) {
-            TransactionItem(transaction, currencyInfo)
-        }
-        IconButton(onClick = onDelete) {
-            Icon(
-                Icons.Default.Delete,
-                contentDescription = "Delete",
-                tint = MaterialTheme.colorScheme.error
-            )
-        }
+        TransactionItem(transaction, currencyInfo)
     }
 }

@@ -138,32 +138,42 @@ fun DashboardScreen(
                 )
             }
 
-            if (recentTransactions.isEmpty()) {
-                item {
-                    Text(
-                        text = "No transactions this month",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            } else {
-                items(recentTransactions) { transaction ->
-                    TransactionItem(transaction, currencyInfo)
-                }
-                item {
-                    TextButton(
-                        onClick = onViewAllTransactions,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+            item {
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    if (recentTransactions.isEmpty()) {
                         Text(
-                            "View all transactions →",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelMedium
+                            text = "No transactions this month",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 24.dp),
+                            textAlign = TextAlign.Center
                         )
+                    } else {
+                        recentTransactions.forEachIndexed { index, transaction ->
+                            TransactionRow(transaction, currencyInfo)
+                            if (index < recentTransactions.lastIndex) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = 12.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant
+                                )
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        TextButton(
+                            onClick = onViewAllTransactions,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                "View all transactions →",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
                     }
                 }
             }
@@ -227,18 +237,30 @@ fun BalanceCard(summary: BalanceSummary, currencyInfo: CurrencyInfo = EUR_DEFAUL
 
 @Composable
 fun SummaryChip(label: String, amount: Double, currencyInfo: CurrencyInfo, modifier: Modifier = Modifier) {
+    val arrow = label.first().toString()
+    val title = label.drop(2)
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
     ) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
-                letterSpacing = 0.5.sp
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = arrow,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                    letterSpacing = 0.5.sp
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                    letterSpacing = 0.5.sp
+                )
+            }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "%s%.0f".format(currencyInfo.symbol, amount * currencyInfo.rate),
@@ -261,7 +283,10 @@ fun BudgetProgress(
     val pct = (progress * 100).toInt()
     val remaining = ((budget - expense) * currencyInfo.rate).coerceAtLeast(0.0)
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -312,50 +337,60 @@ fun BudgetProgress(
 }
 
 @Composable
-fun TransactionItem(transaction: Transaction, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
+fun TransactionRow(transaction: Transaction, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
     val shortDateFormatter = SimpleDateFormat("MMM d", Locale.getDefault())
     val isIncome = transaction.type == TransactionType.INCOME
     val amountColor = if (isIncome) IncomeGreen else ExpenseRed
     val title = if (transaction.note.isNotBlank()) transaction.note else transaction.category
     val subtitle = "${transaction.category} · ${shortDateFormatter.format(Date(transaction.date))}"
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+    Row(
+        modifier = Modifier
+            .padding(12.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = categoryEmoji(transaction.category),
+            fontSize = 28.sp,
+            modifier = Modifier.size(44.dp).wrapContentSize()
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = amountColor.copy(alpha = 0.1f)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(categoryIconColor(transaction.category)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = categoryEmoji(transaction.category), fontSize = 20.sp)
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
             Text(
                 text = (if (isIncome) "+ " else "– ") +
                         "%s%.2f".format(currencyInfo.symbol, transaction.amount * currencyInfo.rate),
                 color = amountColor,
                 fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.bodyMedium
-            )
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+            }
         }
+}
+
+@Composable
+fun TransactionItem(transaction: Transaction, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        TransactionRow(transaction, currencyInfo)
     }
 }
 

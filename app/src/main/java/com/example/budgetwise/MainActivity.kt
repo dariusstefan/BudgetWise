@@ -3,6 +3,8 @@ package com.example.budgetwise
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
@@ -49,6 +51,8 @@ class MainActivity : ComponentActivity() {
         val repository = BudgetRepository(database.transactionDao(), exchangeRateService)
         val preferencesRepository = PreferencesRepository(this)
         val factory = BudgetViewModelFactory(repository, preferencesRepository)
+
+        lifecycleScope.launch { repository.seedMay2026IfEmpty() }
 
         setContent {
             val isDarkMode by preferencesRepository.isDarkMode.collectAsState(initial = false)
@@ -104,7 +108,14 @@ fun MainApp(factory: BudgetViewModelFactory) {
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
                     viewModel = viewModel(factory = factory),
-                    onAddTransaction = { navController.navigate(Screen.AddTransaction.route) }
+                    onAddTransaction = { navController.navigate(Screen.AddTransaction.route) },
+                    onViewAllTransactions = {
+                        navController.navigate(Screen.History.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 )
             }
             composable(Screen.History.route) {

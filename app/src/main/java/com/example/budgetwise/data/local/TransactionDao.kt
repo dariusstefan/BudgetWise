@@ -14,6 +14,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY date DESC")
     fun getAllTransactions(): Flow<List<Transaction>>
 
+    @Query("SELECT COUNT(*) FROM transactions WHERE date >= :start AND date <= :end")
+    suspend fun countTransactionsInRange(start: Long, end: Long): Int
+
     @Insert
     suspend fun insertTransaction(transaction: Transaction)
 
