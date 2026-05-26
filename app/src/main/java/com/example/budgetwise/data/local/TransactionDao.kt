@@ -14,9 +14,6 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions ORDER BY date DESC")
     fun getAllTransactions(): Flow<List<Transaction>>
 
-    @Query("SELECT COUNT(*) FROM transactions WHERE date >= :start AND date <= :end")
-    suspend fun countTransactionsInRange(start: Long, end: Long): Int
-
     @Insert
     suspend fun insertTransaction(transaction: Transaction)
 
@@ -26,11 +23,17 @@ interface TransactionDao {
     @Query("SELECT * FROM recurring_transactions")
     fun getAllRecurringTransactions(): Flow<List<RecurringTransaction>>
 
+    @Query("SELECT * FROM recurring_transactions")
+    suspend fun getAllRecurringTransactionsOnce(): List<RecurringTransaction>
+
     @Insert
     suspend fun insertRecurringTransaction(recurringTransaction: RecurringTransaction)
 
     @Delete
     suspend fun deleteRecurringTransaction(recurringTransaction: RecurringTransaction)
+
+    @Query("UPDATE recurring_transactions SET lastProcessedDate = :date WHERE id = :id")
+    suspend fun updateRecurringLastProcessed(id: Long, date: Long)
 
     @Query("SELECT * FROM month_budgets WHERE monthId = :monthId")
     fun getBudgetForMonth(monthId: String): Flow<MonthBudget?>

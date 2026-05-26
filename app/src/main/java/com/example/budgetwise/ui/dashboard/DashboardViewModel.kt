@@ -82,18 +82,12 @@ class DashboardViewModel(
     val balanceSummary = combine(
         transactionsForSelectedMonth,
         monthBudget,
-        repository.allRecurringTransactions,
         _selectedMonth,
         defaultBudgetInfo
-    ) { transactions, budget, recurring, calendar, (defBudget, budgetSetAt) ->
+    ) { transactions, budget, calendar, (defBudget, budgetSetAt) ->
         val startOfMonth = Calendar.getInstance().apply {
             set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), 1, 0, 0, 0)
             set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-        val endOfMonth = Calendar.getInstance().apply {
-            set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), 1)
-            add(Calendar.MONTH, 1)
-            add(Calendar.MILLISECOND, -1)
         }.timeInMillis
 
         val budgetSetMonth = if (budgetSetAt > 0L) {
@@ -106,15 +100,8 @@ class DashboardViewModel(
         } else Long.MAX_VALUE
         val effectiveDefaultBudget = if (startOfMonth >= budgetSetMonth) defBudget else 0.0
 
-        val transIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-        val transExpense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-
-        val activeRecurring = recurring.filter { it.startDate <= endOfMonth }
-        val recurIncome = activeRecurring.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-        val recurExpense = activeRecurring.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-
-        val totalIncome = transIncome + recurIncome
-        val totalExpense = transExpense + recurExpense
+        val totalIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+        val totalExpense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
 
         BalanceSummary(
             balance = totalIncome - totalExpense,

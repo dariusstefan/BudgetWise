@@ -38,6 +38,20 @@ class RecurringViewModel(
     private val _type = MutableStateFlow(TransactionType.EXPENSE)
     val type: StateFlow<TransactionType> = _type
 
+    private val _dayOfWeek = MutableStateFlow(1) // 1=Mon … 7=Sun
+    val dayOfWeek: StateFlow<Int> = _dayOfWeek
+
+    private val _dayOfMonth = MutableStateFlow(1) // 1–31
+    val dayOfMonth: StateFlow<Int> = _dayOfMonth
+
+    private val _hasEndDate = MutableStateFlow(false)
+    val hasEndDate: StateFlow<Boolean> = _hasEndDate
+
+    private val _endDate = MutableStateFlow(
+        System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000
+    )
+    val endDate: StateFlow<Long> = _endDate
+
     private val _currencyInfo = MutableStateFlow(EUR_DEFAULT)
     val currencyInfo: StateFlow<CurrencyInfo> = _currencyInfo
 
@@ -64,10 +78,21 @@ class RecurringViewModel(
     fun onCategoryChange(value: String) { _category.value = value }
     fun onFrequencyChange(value: Frequency) { _frequency.value = value }
     fun onTypeChange(value: TransactionType) { _type.value = value }
+    fun onDayOfWeekChange(day: Int) { _dayOfWeek.value = day }
+    fun onDayOfMonthChange(day: Int) { _dayOfMonth.value = day }
+    fun onHasEndDateChange(value: Boolean) { _hasEndDate.value = value }
+    fun onEndDateChange(value: Long) { _endDate.value = value }
 
     fun addRecurring() {
         val amountValue = _amount.value.toDoubleOrNull() ?: return
         val rate = _currencyInfo.value.rate
+        val startOfMonth = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.DAY_OF_MONTH, 1)
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }.timeInMillis
         viewModelScope.launch {
             repository.insertRecurringTransaction(
                 RecurringTransaction(
@@ -75,11 +100,18 @@ class RecurringViewModel(
                     label = _label.value,
                     category = _category.value,
                     frequency = _frequency.value,
-                    type = _type.value
+                    type = _type.value,
+                    startDate = startOfMonth,
+                    dayOfWeek = if (_frequency.value == Frequency.WEEKLY) _dayOfWeek.value else null,
+                    dayOfMonth = if (_frequency.value == Frequency.MONTHLY) _dayOfMonth.value else null,
+                    endDate = if (_hasEndDate.value) _endDate.value else null
                 )
             )
             _amount.value = ""
             _label.value = ""
+            _hasEndDate.value = false
+            _endDate.value = System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000
+            repository.processRecurringTransactions()
         }
     }
 

@@ -16,7 +16,22 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
     }
 }
 
-@Database(entities = [Transaction::class, RecurringTransaction::class, MonthBudget::class], version = 2)
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE recurring_transactions ADD COLUMN dayOfWeek INTEGER")
+        db.execSQL("ALTER TABLE recurring_transactions ADD COLUMN dayOfMonth INTEGER")
+        db.execSQL("ALTER TABLE recurring_transactions ADD COLUMN endDate INTEGER")
+        db.execSQL("UPDATE recurring_transactions SET frequency = 'WEEKLY' WHERE frequency = 'DAILY'")
+    }
+}
+
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE recurring_transactions ADD COLUMN lastProcessedDate INTEGER")
+    }
+}
+
+@Database(entities = [Transaction::class, RecurringTransaction::class, MonthBudget::class], version = 4)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
 
@@ -31,7 +46,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "budgetwise_database"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                 INSTANCE = instance
                 instance

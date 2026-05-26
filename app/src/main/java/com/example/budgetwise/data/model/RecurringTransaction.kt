@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 enum class Frequency {
-    DAILY, WEEKLY, MONTHLY
+    WEEKLY, MONTHLY
 }
 
 @Entity(tableName = "recurring_transactions")
@@ -15,5 +15,9 @@ data class RecurringTransaction(
     val category: String,
     val frequency: Frequency,
     val type: TransactionType,
-    val startDate: Long = System.currentTimeMillis()
+    val startDate: Long = System.currentTimeMillis(),
+    val dayOfWeek: Int? = null,        // 1=Mon … 7=Sun; used when frequency=WEEKLY
+    val dayOfMonth: Int? = null,       // 1–31; used when frequency=MONTHLY
+    val endDate: Long? = null,
+    val lastProcessedDate: Long? = null
 )

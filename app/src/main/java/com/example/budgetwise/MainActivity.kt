@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
         val preferencesRepository = PreferencesRepository(this)
         val factory = BudgetViewModelFactory(repository, preferencesRepository)
 
-        lifecycleScope.launch { repository.seedMay2026IfEmpty() }
+        lifecycleScope.launch { repository.processRecurringTransactions() }
 
         setContent {
             val isDarkMode by preferencesRepository.isDarkMode.collectAsState(initial = false)
