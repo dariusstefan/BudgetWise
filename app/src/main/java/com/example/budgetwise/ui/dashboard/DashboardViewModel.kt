@@ -3,7 +3,9 @@ package com.example.budgetwise.ui.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetwise.data.BudgetRepository
+import com.example.budgetwise.data.model.Frequency
 import com.example.budgetwise.data.model.MonthBudget
+import com.example.budgetwise.data.model.RecurringTransaction
 import com.example.budgetwise.data.model.Transaction
 import com.example.budgetwise.data.model.TransactionType
 import com.example.budgetwise.data.preferences.PreferencesRepository
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -117,6 +120,68 @@ class DashboardViewModel(
         transactions.take(limit)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val incomingTransactions: StateFlow<List<IncomingTransaction>> = combine(
+        repository.allRecurringTransactions,
+        _selectedMonth
+    ) { recurrings, calendar ->
+        val now = System.currentTimeMillis()
+        val startOfMonth = Calendar.getInstance().apply {
+            set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), 1, 0, 0, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        val endOfMonth = Calendar.getInstance().apply {
+            set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), 1)
+            add(Calendar.MONTH, 1)
+            add(Calendar.MILLISECOND, -1)
+        }.timeInMillis
+        val afterMillis = maxOf(now, startOfMonth - 1)
+
+        recurrings.mapNotNull { recurring ->
+            val nextDue = nextDueDate(recurring, afterMillis) ?: return@mapNotNull null
+            if (nextDue > endOfMonth) return@mapNotNull null
+            IncomingTransaction(
+                label = recurring.label,
+                category = recurring.category,
+                amount = recurring.amount,
+                type = recurring.type,
+                dueDate = nextDue
+            )
+        }.sortedBy { it.dueDate }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private fun nextDueDate(recurring: RecurringTransaction, afterMillis: Long): Long? {
+        val endMillis = recurring.endDate
+        val afterCal = Calendar.getInstance().apply {
+            timeInMillis = afterMillis
+            set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
+        }
+        return when (recurring.frequency) {
+            Frequency.MONTHLY -> {
+                val dom = recurring.dayOfMonth ?: 1
+                val cursor = Calendar.getInstance().apply {
+                    set(afterCal.get(Calendar.YEAR), afterCal.get(Calendar.MONTH), 1, 12, 0, 0)
+                    set(Calendar.MILLISECOND, 0)
+                    set(Calendar.DAY_OF_MONTH, minOf(dom, getActualMaximum(Calendar.DAY_OF_MONTH)))
+                    if (!after(afterCal)) add(Calendar.MONTH, 1)
+                }
+                cursor.set(Calendar.DAY_OF_MONTH, minOf(dom, cursor.getActualMaximum(Calendar.DAY_OF_MONTH)))
+                if (endMillis != null && cursor.timeInMillis > endMillis) null else cursor.timeInMillis
+            }
+            Frequency.WEEKLY -> {
+                val calDow = recurring.dayOfWeek?.let { if (it == 7) Calendar.SUNDAY else it + 1 } ?: Calendar.MONDAY
+                val cursor = Calendar.getInstance().apply {
+                    timeInMillis = afterMillis
+                    add(Calendar.DAY_OF_MONTH, 1)
+                    set(Calendar.HOUR_OF_DAY, 12); set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                    while (get(Calendar.DAY_OF_WEEK) != calDow) add(Calendar.DAY_OF_MONTH, 1)
+                }
+                if (endMillis != null && cursor.timeInMillis > endMillis) null else cursor.timeInMillis
+            }
+        }
+    }
+
     fun nextMonth() {
         val next = _selectedMonth.value.clone() as Calendar
         next.add(Calendar.MONTH, 1)
@@ -137,6 +202,14 @@ class DashboardViewModel(
         }
     }
 }
+
+data class IncomingTransaction(
+    val label: String,
+    val category: String,
+    val amount: Double,
+    val type: TransactionType,
+    val dueDate: Long
+)
 
 data class BalanceSummary(
     val balance: Double = 0.0,

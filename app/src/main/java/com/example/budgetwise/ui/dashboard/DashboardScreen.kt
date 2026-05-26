@@ -33,6 +33,8 @@ import com.example.budgetwise.util.EUR_DEFAULT
 import com.example.budgetwise.util.categoryEmoji
 import com.example.budgetwise.util.categoryIconColor
 import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,6 +47,7 @@ fun DashboardScreen(
     val selectedMonthText by viewModel.selectedMonthText.collectAsState()
     val summary by viewModel.balanceSummary.collectAsState()
     val recentTransactions by viewModel.recentTransactions.collectAsState()
+    val incomingTransactions by viewModel.incomingTransactions.collectAsState()
     val currencyInfo by viewModel.currencyInfo.collectAsState()
 
     var showBudgetDialog by remember { mutableStateOf(false) }
@@ -123,6 +126,34 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Set budget for this month")
+                    }
+                }
+            }
+
+            if (incomingTransactions.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "INCOMING TRANSACTIONS",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                item {
+                    OutlinedCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        incomingTransactions.forEachIndexed { index, incoming ->
+                            IncomingTransactionRow(incoming, currencyInfo)
+                            if (index < incomingTransactions.lastIndex) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = 12.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -381,6 +412,52 @@ fun TransactionRow(transaction: Transaction, currencyInfo: CurrencyInfo = EUR_DE
                 )
             }
         }
+}
+
+@Composable
+fun IncomingTransactionRow(incoming: IncomingTransaction, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
+    val dueDateFormatter = SimpleDateFormat("MMM d", Locale.getDefault())
+    val isIncome = incoming.type == TransactionType.INCOME
+    val amountColor = if (isIncome) IncomeGreen else ExpenseRed
+
+    Row(
+        modifier = Modifier
+            .padding(12.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = categoryEmoji(incoming.category),
+            fontSize = 28.sp,
+            modifier = Modifier.size(44.dp).wrapContentSize()
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = incoming.label,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = "Due ${dueDateFormatter.format(Date(incoming.dueDate))}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = amountColor.copy(alpha = 0.1f)
+        ) {
+            Text(
+                text = (if (isIncome) "+ " else "– ") +
+                        "%s%.2f".format(currencyInfo.symbol, incoming.amount * currencyInfo.rate),
+                color = amountColor,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+            )
+        }
+    }
 }
 
 @Composable

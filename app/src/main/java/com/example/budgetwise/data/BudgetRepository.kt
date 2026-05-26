@@ -114,6 +114,25 @@ class BudgetRepository(
             if (lastProcessed != null) {
                 transactionDao.updateRecurringLastProcessed(recurring.id, lastProcessed)
             }
+
+            // Delete if end date is set and its month has fully passed
+            if (recurring.endDate != null) {
+                val endMonth = Calendar.getInstance().apply {
+                    timeInMillis = recurring.endDate
+                    set(Calendar.DAY_OF_MONTH, 1)
+                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                    add(Calendar.MONTH, 1)
+                }
+                val startOfCurrentMonth = Calendar.getInstance().apply {
+                    set(Calendar.DAY_OF_MONTH, 1)
+                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                }
+                if (!startOfCurrentMonth.before(endMonth)) {
+                    transactionDao.deleteRecurringTransaction(recurring)
+                }
+            }
         }
     }
 
