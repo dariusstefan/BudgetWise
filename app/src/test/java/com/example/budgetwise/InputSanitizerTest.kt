@@ -102,4 +102,43 @@ class InputSanitizerTest {
     fun `label that becomes empty after sanitization is invalid`() {
         assertFalse(InputSanitizer.isValidLabel(";;;"))
     }
+
+    @Test
+    fun `label strips backslashes`() {
+        assertEquals("path", InputSanitizer.sanitizeLabel("path\\"))
+    }
+
+    @Test
+    fun `label strips combination of dangerous characters`() {
+        assertEquals("testinput", InputSanitizer.sanitizeLabel("test;'\\\"input"))
+    }
+
+    @Test
+    fun `amount just above zero is valid`() {
+        assertNotNull(InputSanitizer.sanitizeAmount("0.01"))
+    }
+
+    @Test
+    fun `amount with leading dot is valid`() {
+        val result = InputSanitizer.sanitizeAmount(".5")
+        assertNotNull(result)
+        assertEquals(0.5, result!!, 0.0001)
+    }
+
+    @Test
+    fun `amount with thousands separator is invalid`() {
+        assertNull(InputSanitizer.sanitizeAmount("1,000"))
+    }
+
+    @Test
+    fun `amount with high precision decimal is valid`() {
+        val result = InputSanitizer.sanitizeAmount("99.9999")
+        assertNotNull(result)
+        assertEquals(99.9999, result!!, 0.00001)
+    }
+
+    @Test
+    fun `amount just above limit is invalid`() {
+        assertNull(InputSanitizer.sanitizeAmount("1000000.01"))
+    }
 }

@@ -105,4 +105,78 @@ class RecurringUtilsTest {
         val total = (1..7).sumOf { weeklyOccurrencesInMonth(it, 2026, Calendar.MAY) }
         assertEquals(31, total) // May has 31 days
     }
+
+    // --- Edge cases: February day clamping ---
+
+    @Test
+    fun `monthly day 31 clamps to last day of February`() {
+        // after = Jan 31: cursor lands on Jan 31 at 12:00, which is NOT after Jan 31 at 23:59,
+        // so it advances to February where day 31 clamps to 28
+        val after = calendarOf(2026, Calendar.JANUARY, 31)
+        val result = nextDueDate(monthlyRecurring(31), after)!!
+        val cal = Calendar.getInstance().apply { timeInMillis = result }
+        assertEquals(Calendar.FEBRUARY, cal.get(Calendar.MONTH))
+        assertEquals(28, cal.get(Calendar.DAY_OF_MONTH))
+    }
+
+    @Test
+    fun `monthly day 29 clamps to 29 in leap year February`() {
+        // after = Jan 31, 2028: cursor lands on Jan 29 at 12:00, NOT after Jan 31 at 23:59,
+        // so it advances to Feb 2028 (leap year) where day 29 is valid
+        val after = calendarOf(2028, Calendar.JANUARY, 31)
+        val result = nextDueDate(monthlyRecurring(29), after)!!
+        val cal = Calendar.getInstance().apply { timeInMillis = result }
+        assertEquals(Calendar.FEBRUARY, cal.get(Calendar.MONTH))
+        assertEquals(29, cal.get(Calendar.DAY_OF_MONTH))
+        assertEquals(2028, cal.get(Calendar.YEAR))
+    }
+
+    // --- Edge cases: year boundary ---
+
+    @Test
+    fun `monthly wraps from December to January of next year`() {
+        // After Dec 20 with due day=1 → next is Jan 1 of next year
+        val after = calendarOf(2026, Calendar.DECEMBER, 20)
+        val result = nextDueDate(monthlyRecurring(1), after)!!
+        val cal = Calendar.getInstance().apply { timeInMillis = result }
+        assertEquals(Calendar.JANUARY, cal.get(Calendar.MONTH))
+        assertEquals(2027, cal.get(Calendar.YEAR))
+        assertEquals(1, cal.get(Calendar.DAY_OF_MONTH))
+    }
+
+    // --- Edge cases: Sunday mapping (dayOfWeek=7) ---
+
+    @Test
+    fun `weekly Sunday mapping resolves to Calendar SUNDAY`() {
+        // May 27, 2026 is a Wednesday; next Sunday is June 1
+        val after = calendarOf(2026, Calendar.MAY, 27)
+        val result = nextDueDate(weeklyRecurring(7), after)!! // 7 = Sun
+        val cal = Calendar.getInstance().apply { timeInMillis = result }
+        assertEquals(Calendar.SUNDAY, cal.get(Calendar.DAY_OF_WEEK))
+    }
+
+    @Test
+    fun `weekly same day advances to next week not same day`() {
+        // May 27, 2026 is a Wednesday (dayOfWeek=3); since it's strictly after, next Wed is June 3
+        val after = calendarOf(2026, Calendar.MAY, 27)
+        val result = nextDueDate(weeklyRecurring(3), after)!! // 3 = Wed
+        val cal = Calendar.getInstance().apply { timeInMillis = result }
+        assertEquals(Calendar.WEDNESDAY, cal.get(Calendar.DAY_OF_WEEK))
+        // Must be after May 27, not on it
+        assertTrue(result > after)
+    }
+
+    // --- weeklyOccurrencesInMonth: February ---
+
+    @Test
+    fun `total weekly occurrences across all days equals days in February 2026`() {
+        val total = (1..7).sumOf { weeklyOccurrencesInMonth(it, 2026, Calendar.FEBRUARY) }
+        assertEquals(28, total)
+    }
+
+    @Test
+    fun `total weekly occurrences in leap year February equals 29`() {
+        val total = (1..7).sumOf { weeklyOccurrencesInMonth(it, 2028, Calendar.FEBRUARY) }
+        assertEquals(29, total)
+    }
 }
