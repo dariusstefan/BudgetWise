@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.budgetwise.data.model.Transaction
 import com.example.budgetwise.data.model.TransactionType
+import com.example.budgetwise.ui.i18n.LocalAppStrings
 import com.example.budgetwise.ui.theme.ExpenseRed
 import com.example.budgetwise.ui.theme.IncomeGreen
 import com.example.budgetwise.util.CurrencyInfo
@@ -45,7 +46,13 @@ fun DashboardScreen(
     onAddTransaction: () -> Unit,
     onViewAllTransactions: () -> Unit = {}
 ) {
-    val selectedMonthText by viewModel.selectedMonthText.collectAsState()
+    val strings = LocalAppStrings.current
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
+    val selectedMonthText = remember(selectedMonth, strings.locale) {
+        java.text.SimpleDateFormat("MMMM yyyy", strings.locale)
+            .format(selectedMonth.time)
+            .replaceFirstChar { it.uppercaseChar() }
+    }
     val summary by viewModel.balanceSummary.collectAsState()
     val recentTransactions by viewModel.recentTransactions.collectAsState()
     val incomingTransactions by viewModel.incomingTransactions.collectAsState()
@@ -93,7 +100,7 @@ fun DashboardScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Transaction")
+                Icon(Icons.Default.Add, contentDescription = strings.addTransactionTitle)
             }
         }
     ) { padding ->
@@ -117,7 +124,7 @@ fun DashboardScreen(
             item {
                 val incomingExpense = incomingTransactions
                     .filter { it.type == TransactionType.EXPENSE }
-                    .sumOf { it.amount } // base currency — BudgetProgress applies the rate
+                    .sumOf { it.amount }
                 when {
                     summary.budget > 0 -> BudgetProgress(
                         expense = summary.expense,
@@ -130,7 +137,7 @@ fun DashboardScreen(
                         onClick = { showBudgetDialog = true },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Set budget for this month")
+                        Text(strings.setBudgetForThisMonth)
                     }
                 }
             }
@@ -138,7 +145,7 @@ fun DashboardScreen(
             if (incomingTransactions.isNotEmpty()) {
                 item {
                     Text(
-                        text = "INCOMING TRANSACTIONS",
+                        text = strings.incomingTransactionsHeader,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
@@ -165,7 +172,7 @@ fun DashboardScreen(
 
             item {
                 Text(
-                    text = "RECENT TRANSACTIONS",
+                    text = strings.recentTransactionsHeader,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -180,7 +187,7 @@ fun DashboardScreen(
                 ) {
                     if (recentTransactions.isEmpty()) {
                         Text(
-                            text = "No transactions this month",
+                            text = strings.noTransactionsThisMonth,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
@@ -204,7 +211,7 @@ fun DashboardScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                "View all transactions →",
+                                strings.viewAllTransactions,
                                 color = MaterialTheme.colorScheme.primary,
                                 style = MaterialTheme.typography.labelMedium
                             )
@@ -235,6 +242,7 @@ fun MonthPicker(monthText: String, onPrevious: () -> Unit, onNext: () -> Unit) {
 
 @Composable
 fun BalanceCard(summary: BalanceSummary, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
+    val strings = LocalAppStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -246,7 +254,7 @@ fun BalanceCard(summary: BalanceSummary, currencyInfo: CurrencyInfo = EUR_DEFAUL
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = "TOTAL BALANCE",
+                text = strings.totalBalance,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                 letterSpacing = 1.sp
@@ -263,8 +271,8 @@ fun BalanceCard(summary: BalanceSummary, currencyInfo: CurrencyInfo = EUR_DEFAUL
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                SummaryChip("↑ INCOME", summary.income, currencyInfo, Modifier.weight(1f))
-                SummaryChip("↓ EXPENSES", summary.expense, currencyInfo, Modifier.weight(1f))
+                SummaryChip(strings.incomeChip, summary.income, currencyInfo, Modifier.weight(1f))
+                SummaryChip(strings.expensesChip, summary.expense, currencyInfo, Modifier.weight(1f))
             }
         }
     }
@@ -315,13 +323,14 @@ fun BudgetProgress(
     currencyInfo: CurrencyInfo = EUR_DEFAULT,
     onEditClick: (() -> Unit)? = null
 ) {
+    val strings = LocalAppStrings.current
     val spentFraction = (expense / budget).toFloat().coerceIn(0f, 1f)
     val incomingFraction = ((incomingExpense / budget).toFloat()).coerceIn(0f, 1f - spentFraction)
     val pct = (spentFraction * 100).toInt()
     val remaining = ((budget - expense - incomingExpense) * currencyInfo.rate).coerceAtLeast(0.0)
     val overBudget = (expense + incomingExpense) > budget
     val spentColor = if (spentFraction > 0.9f || overBudget) ExpenseRed else MaterialTheme.colorScheme.primary
-    val incomingColor = Color(0xFF26C6DA) // fixed teal, visible in both themes
+    val incomingColor = Color(0xFF26C6DA)
 
     OutlinedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -334,7 +343,7 @@ fun BudgetProgress(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Monthly Budget",
+                    text = strings.monthlyBudget,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -360,7 +369,6 @@ fun BudgetProgress(
                 }
             }
             Spacer(modifier = Modifier.height(10.dp))
-            // Two-segment bar: spent + incoming
             BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                 val totalWidth = maxWidth
                 Row(
@@ -394,7 +402,7 @@ fun BudgetProgress(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "$pct% spent",
+                    text = strings.percentSpent(pct),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -408,14 +416,14 @@ fun BudgetProgress(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "${currencyInfo.symbol}${"%.0f".format(incomingExpense * currencyInfo.rate)} incoming",
+                            text = "${currencyInfo.symbol}${"%.0f".format(incomingExpense * currencyInfo.rate)} ${strings.incoming}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
                 Text(
-                    text = "${currencyInfo.symbol}${"%.0f".format(remaining)} left",
+                    text = "${currencyInfo.symbol}${"%.0f".format(remaining)} ${strings.left}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -426,7 +434,8 @@ fun BudgetProgress(
 
 @Composable
 fun TransactionRow(transaction: Transaction, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
-    val shortDateFormatter = SimpleDateFormat("MMM d", Locale.getDefault())
+    val strings = LocalAppStrings.current
+    val shortDateFormatter = SimpleDateFormat("MMM d", strings.locale)
     val isIncome = transaction.type == TransactionType.INCOME
     val amountColor = if (isIncome) IncomeGreen else ExpenseRed
     val title = if (transaction.note.isNotBlank()) transaction.note else transaction.category
@@ -474,7 +483,8 @@ fun TransactionRow(transaction: Transaction, currencyInfo: CurrencyInfo = EUR_DE
 
 @Composable
 fun IncomingTransactionRow(incoming: IncomingTransaction, currencyInfo: CurrencyInfo = EUR_DEFAULT) {
-    val dueDateFormatter = SimpleDateFormat("MMM d", Locale.getDefault())
+    val strings = LocalAppStrings.current
+    val dueDateFormatter = SimpleDateFormat("MMM d", strings.locale)
     val isIncome = incoming.type == TransactionType.INCOME
     val amountColor = if (isIncome) IncomeGreen else ExpenseRed
 
@@ -497,7 +507,7 @@ fun IncomingTransactionRow(incoming: IncomingTransaction, currencyInfo: Currency
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "Due ${dueDateFormatter.format(Date(incoming.dueDate))}",
+                text = "${strings.due} ${dueDateFormatter.format(Date(incoming.dueDate))}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -535,6 +545,7 @@ fun BudgetDialog(
     onConfirm: (Double) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val strings = LocalAppStrings.current
     var input by remember { mutableStateOf(currentBudget) }
     Dialog(onDismissRequest = onDismiss) {
         Card {
@@ -542,11 +553,11 @@ fun BudgetDialog(
                 modifier = Modifier.padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("Set Monthly Budget", style = MaterialTheme.typography.titleMedium)
+                Text(strings.setMonthlyBudget, style = MaterialTheme.typography.titleMedium)
                 OutlinedTextField(
                     value = input,
                     onValueChange = { input = it },
-                    label = { Text("Amount") },
+                    label = { Text(strings.amount) },
                     prefix = { Text(symbol) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
@@ -556,12 +567,12 @@ fun BudgetDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(onClick = onDismiss) { Text(strings.cancel) }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = { input.toDoubleOrNull()?.let(onConfirm) },
                         enabled = input.toDoubleOrNull() != null
-                    ) { Text("Save") }
+                    ) { Text(strings.save) }
                 }
             }
         }

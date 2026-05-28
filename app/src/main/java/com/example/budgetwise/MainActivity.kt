@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -32,6 +33,8 @@ import com.example.budgetwise.ui.Screen
 import com.example.budgetwise.ui.add.AddTransactionScreen
 import com.example.budgetwise.ui.dashboard.DashboardScreen
 import com.example.budgetwise.ui.history.HistoryScreen
+import com.example.budgetwise.ui.i18n.LocalAppStrings
+import com.example.budgetwise.ui.i18n.appStringsFor
 import com.example.budgetwise.ui.recurring.RecurringScreen
 import com.example.budgetwise.ui.settings.SettingsScreen
 import com.example.budgetwise.ui.theme.BudgetWiseTheme
@@ -56,8 +59,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val isDarkMode by preferencesRepository.isDarkMode.collectAsState(initial = false)
-            BudgetWiseTheme(darkTheme = isDarkMode) {
-                MainApp(factory)
+            val selectedLanguage by preferencesRepository.selectedLanguage.collectAsState(
+                initial = com.example.budgetwise.ui.i18n.AppLanguage.ENGLISH
+            )
+            CompositionLocalProvider(LocalAppStrings provides appStringsFor(selectedLanguage)) {
+                BudgetWiseTheme(darkTheme = isDarkMode) {
+                    MainApp(factory)
+                }
             }
         }
     }
@@ -65,15 +73,16 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainApp(factory: BudgetViewModelFactory) {
+    val strings = LocalAppStrings.current
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
     val items = listOf(
-        Triple(Screen.Dashboard, "Home", Icons.Default.Home),
-        Triple(Screen.History, "History", Icons.Default.History),
-        Triple(Screen.Recurring, "Recurring", Icons.Default.Repeat),
-        Triple(Screen.Settings, "Settings", Icons.Default.Settings)
+        Triple(Screen.Dashboard, strings.navHome, Icons.Default.Home),
+        Triple(Screen.History, strings.navHistory, Icons.Default.History),
+        Triple(Screen.Recurring, strings.navRecurring, Icons.Default.Repeat),
+        Triple(Screen.Settings, strings.navSettings, Icons.Default.Settings)
     )
 
     Scaffold(

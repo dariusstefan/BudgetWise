@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.budgetwise.data.model.TransactionType
+import com.example.budgetwise.ui.i18n.LocalAppStrings
 import com.example.budgetwise.ui.theme.ExpenseRed
 import com.example.budgetwise.ui.theme.IncomeGreen
 import com.example.budgetwise.ui.theme.IncomeSurface
@@ -44,6 +45,7 @@ fun AddTransactionScreen(
     viewModel: AddTransactionViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val strings = LocalAppStrings.current
     val amount by viewModel.amount.collectAsState()
     val note by viewModel.note.collectAsState()
     val category by viewModel.category.collectAsState()
@@ -88,7 +90,7 @@ fun AddTransactionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Add Transaction") },
+                title = { Text(strings.addTransactionTitle) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -105,7 +107,6 @@ fun AddTransactionScreen(
                 .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) },
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Custom segmented toggle
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -122,7 +123,7 @@ fun AddTransactionScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "↓ Expense",
+                        text = strings.expenseToggle,
                         color = if (isExpense) ExpenseRed else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = if (isExpense) FontWeight.SemiBold else FontWeight.Normal
                     )
@@ -137,21 +138,20 @@ fun AddTransactionScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "↑ Income",
+                        text = strings.incomeToggle,
                         color = if (!isExpense) IncomeGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = if (!isExpense) FontWeight.SemiBold else FontWeight.Normal
                     )
                 }
             }
 
-            // Amount section with label + large BasicTextField + underline
             var amountFocused by remember { mutableStateOf(false) }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "AMOUNT (${currencyInfo.code})",
+                    text = "${strings.amount.uppercase()} (${currencyInfo.code})",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 1.sp
@@ -206,12 +206,11 @@ fun AddTransactionScreen(
                 }
             }
 
-            // Category
             Box {
                 OutlinedTextField(
                     value = "${categoryEmoji(category)} $category",
                     onValueChange = {},
-                    label = { Text("Category") },
+                    label = { Text(strings.category) },
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = { Text("▼") }
@@ -227,22 +226,20 @@ fun AddTransactionScreen(
                 }
             }
 
-            // Note
             OutlinedTextField(
                 value = note,
                 onValueChange = { viewModel.onNoteChange(it) },
-                label = { Text("Note (optional)") },
+                label = { Text(strings.noteOptional) },
                 placeholder = { Text("e.g. Weekly groceries", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Date
-            val dateFormatter = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+            val dateFormatter = SimpleDateFormat("MMMM d, yyyy", strings.locale)
             Box {
                 OutlinedTextField(
-                    value = dateFormatter.format(Date(date)),
+                    value = dateFormatter.format(Date(date)).replaceFirstChar { it.uppercaseChar() },
                     onValueChange = {},
-                    label = { Text("Date") },
+                    label = { Text(strings.date) },
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
@@ -262,7 +259,7 @@ fun AddTransactionScreen(
                 shape = RoundedCornerShape(8.dp),
                 enabled = amount.isNotEmpty()
             ) {
-                Text("Save Transaction", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Text(strings.saveTransaction, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             }
         }
     }

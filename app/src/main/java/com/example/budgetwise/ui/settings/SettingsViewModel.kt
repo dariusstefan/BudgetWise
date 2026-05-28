@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.budgetwise.data.BudgetRepository
 import com.example.budgetwise.data.preferences.PreferencesRepository
+import com.example.budgetwise.ui.i18n.AppLanguage
 import com.example.budgetwise.util.CurrencyInfo
 import com.example.budgetwise.util.EUR_DEFAULT
 import kotlinx.coroutines.flow.*
@@ -19,6 +20,9 @@ class SettingsViewModel(
 
     val isDarkMode: StateFlow<Boolean> = preferencesRepository.isDarkMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val selectedLanguage: StateFlow<AppLanguage> = preferencesRepository.selectedLanguage
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppLanguage.ENGLISH)
 
     private val _currencyInfo = MutableStateFlow(EUR_DEFAULT)
     val currencyInfo: StateFlow<CurrencyInfo> = _currencyInfo
@@ -60,6 +64,12 @@ class SettingsViewModel(
     fun setDarkMode(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setDarkMode(enabled)
+        }
+    }
+
+    fun setLanguage(language: AppLanguage) {
+        viewModelScope.launch {
+            preferencesRepository.setSelectedLanguage(language)
         }
     }
 }

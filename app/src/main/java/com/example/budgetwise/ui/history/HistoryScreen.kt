@@ -21,6 +21,7 @@ import com.example.budgetwise.data.model.Transaction
 import com.example.budgetwise.data.model.TransactionType
 import com.example.budgetwise.ui.dashboard.MonthPicker
 import com.example.budgetwise.ui.dashboard.TransactionItem
+import com.example.budgetwise.ui.i18n.LocalAppStrings
 import com.example.budgetwise.ui.theme.ExpenseRed
 import com.example.budgetwise.ui.theme.ExpenseSurface
 import com.example.budgetwise.ui.theme.IncomeGreen
@@ -33,6 +34,7 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(viewModel: HistoryViewModel) {
+    val strings = LocalAppStrings.current
     val transactions by viewModel.filteredTransactions.collectAsState()
     val filterType by viewModel.filterType.collectAsState()
     val selectedMonth by viewModel.selectedMonth.collectAsState()
@@ -41,8 +43,8 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
     val monthExpense by viewModel.monthExpense.collectAsState()
     val monthHasTransactions by viewModel.monthHasTransactions.collectAsState()
 
-    val monthFormatter = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
-    val groupKeyFormatter = SimpleDateFormat("MMMM d", Locale.getDefault())
+    val monthFormatter = SimpleDateFormat("MMMM yyyy", strings.locale)
+    val groupKeyFormatter = SimpleDateFormat("MMMM d", strings.locale)
 
     val grouped = transactions
         .sortedByDescending { it.date }
@@ -51,7 +53,7 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
         .toList()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("History") }) }
+        topBar = { TopAppBar(title = { Text(strings.historyTitle) }) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -61,7 +63,7 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             MonthPicker(
-                monthText = monthFormatter.format(selectedMonth.time),
+                monthText = monthFormatter.format(selectedMonth.time).replaceFirstChar { it.uppercaseChar() },
                 onPrevious = { viewModel.previousMonth() },
                 onNext = { viewModel.nextMonth() }
             )
@@ -73,17 +75,17 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
                 FilterChip(
                     selected = filterType == null,
                     onClick = { viewModel.setFilterType(null) },
-                    label = { Text("All") }
+                    label = { Text(strings.all) }
                 )
                 FilterChip(
                     selected = filterType == TransactionType.INCOME,
                     onClick = { viewModel.setFilterType(TransactionType.INCOME) },
-                    label = { Text("Income") }
+                    label = { Text(strings.income) }
                 )
                 FilterChip(
                     selected = filterType == TransactionType.EXPENSE,
                     onClick = { viewModel.setFilterType(TransactionType.EXPENSE) },
-                    label = { Text("Expenses") }
+                    label = { Text(strings.expenses) }
                 )
             }
 
@@ -93,19 +95,18 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No transactions for this period",
+                        text = strings.noTransactionsForPeriod,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
-                // Monthly summary cards
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     MonthlySummaryCard(
-                        label = "INCOME",
+                        label = strings.incomeCardLabel,
                         amount = monthIncome * currencyInfo.rate,
                         symbol = currencyInfo.symbol,
                         amountColor = IncomeGreen,
@@ -113,7 +114,7 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
                         modifier = Modifier.weight(1f)
                     )
                     MonthlySummaryCard(
-                        label = "EXPENSES",
+                        label = strings.expensesCardLabel,
                         amount = monthExpense * currencyInfo.rate,
                         symbol = currencyInfo.symbol,
                         amountColor = ExpenseRed,
@@ -129,7 +130,10 @@ fun HistoryScreen(viewModel: HistoryViewModel) {
                     if (transactions.isEmpty()) {
                         item {
                             Text(
-                                text = "No ${if (filterType?.name?.lowercase() == "income") "income" else "expenses"} this month",
+                                text = if (filterType == TransactionType.INCOME)
+                                    strings.noIncomeThisMonth
+                                else
+                                    strings.noExpensesThisMonth,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 24.dp).fillMaxWidth(),

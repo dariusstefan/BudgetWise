@@ -36,6 +36,7 @@ import com.example.budgetwise.R
 import com.example.budgetwise.data.model.Frequency
 import com.example.budgetwise.data.model.RecurringTransaction
 import com.example.budgetwise.data.model.TransactionType
+import com.example.budgetwise.ui.i18n.LocalAppStrings
 import com.example.budgetwise.ui.theme.ExpenseRed
 import com.example.budgetwise.ui.theme.ExpenseSurface
 import com.example.budgetwise.ui.theme.IncomeGreen
@@ -45,9 +46,6 @@ import com.example.budgetwise.util.EUR_DEFAULT
 import com.example.budgetwise.util.categoryEmoji
 import java.text.SimpleDateFormat
 import java.util.*
-
-private val DAY_LABELS = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-private val dateFormatter = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
 
 private fun monthlyMultiplier(recurring: RecurringTransaction): Int {
     if (recurring.frequency == Frequency.MONTHLY) return 1
@@ -68,6 +66,8 @@ private fun monthlyMultiplier(recurring: RecurringTransaction): Int {
 fun RecurringScreen(
     viewModel: RecurringViewModel
 ) {
+    val strings = LocalAppStrings.current
+    val dateFormatter = remember(strings.locale) { SimpleDateFormat("MMMM d, yyyy", strings.locale) }
     val recurringTransactions by viewModel.recurringTransactions.collectAsState()
     val amount by viewModel.amount.collectAsState()
     val label by viewModel.label.collectAsState()
@@ -131,7 +131,7 @@ fun RecurringScreen(
             sheetState = sheetState
         ) {
             val sheetList = recurringTransactions.filter { it.type == sheetType }
-            val sheetTitle = if (sheetType == TransactionType.INCOME) "Recurring In" else "Recurring Out"
+            val sheetTitle = if (sheetType == TransactionType.INCOME) strings.recurringInSheet else strings.recurringOutSheet
             Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 32.dp)) {
                 Text(
                     sheetTitle,
@@ -141,7 +141,7 @@ fun RecurringScreen(
                 )
                 if (sheetList.isEmpty()) {
                     Text(
-                        "No recurring ${if (sheetType == TransactionType.INCOME) "income" else "expenses"} yet.",
+                        if (sheetType == TransactionType.INCOME) strings.noRecurringIncome else strings.noRecurringExpenses,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 24.dp)
@@ -163,7 +163,7 @@ fun RecurringScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Recurring Transactions") })
+            TopAppBar(title = { Text(strings.recurringTitle) })
         }
     ) { padding ->
         Column(
@@ -177,7 +177,7 @@ fun RecurringScreen(
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 RecurringSummaryCard(
-                    label = "RECURRING IN",
+                    label = strings.recurringInLabel,
                     amount = totalIn,
                     symbol = currencyInfo.symbol,
                     color = IncomeGreen,
@@ -185,7 +185,7 @@ fun RecurringScreen(
                     onClick = { sheetType = TransactionType.INCOME }
                 )
                 RecurringSummaryCard(
-                    label = "RECURRING OUT",
+                    label = strings.recurringOutLabel,
                     amount = totalOut,
                     symbol = currencyInfo.symbol,
                     color = ExpenseRed,
@@ -206,12 +206,11 @@ fun RecurringScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        "Add New Recurring",
+                        strings.addNewRecurring,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
 
-                    // Type toggle
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -228,7 +227,7 @@ fun RecurringScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "↓ Expense",
+                                strings.expenseToggle,
                                 color = if (isExpense) ExpenseRed else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = if (isExpense) FontWeight.SemiBold else FontWeight.Normal
                             )
@@ -243,21 +242,20 @@ fun RecurringScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "↑ Income",
+                                strings.incomeToggle,
                                 color = if (!isExpense) IncomeGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = if (!isExpense) FontWeight.SemiBold else FontWeight.Normal
                             )
                         }
                     }
 
-                    // Amount
                     var amountFocused by remember { mutableStateOf(false) }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "AMOUNT (${currencyInfo.code})",
+                            text = "${strings.amount.uppercase()} (${currencyInfo.code})",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 1.sp
@@ -312,22 +310,20 @@ fun RecurringScreen(
                         }
                     }
 
-                    // Label
                     OutlinedTextField(
                         value = label,
                         onValueChange = { viewModel.onLabelChange(it) },
-                        label = { Text("Label (e.g. Rent)") },
+                        label = { Text(strings.labelHint) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
 
-                    // Category
                     val categories = listOf("Food & Groceries", "Housing", "Salary", "Entertainment", "Transport", "Shopping", "Utilities", "Others")
                     Box {
                         OutlinedTextField(
                             value = "${categoryEmoji(category)} $category",
                             onValueChange = {},
-                            label = { Text("Category") },
+                            label = { Text(strings.category) },
                             readOnly = true,
                             modifier = Modifier.fillMaxWidth(),
                             trailingIcon = { Text("▼") }
@@ -348,12 +344,14 @@ fun RecurringScreen(
                         }
                     }
 
-                    // Frequency
                     Box {
                         OutlinedTextField(
-                            value = frequency.name.lowercase().replaceFirstChar { it.uppercase() },
+                            value = when (frequency) {
+                                Frequency.WEEKLY -> strings.weeklyLabel
+                                Frequency.MONTHLY -> strings.monthlyLabel
+                            },
                             onValueChange = {},
-                            label = { Text("Frequency") },
+                            label = { Text(strings.frequency) },
                             readOnly = true,
                             modifier = Modifier.fillMaxWidth(),
                             trailingIcon = { Text("▼") }
@@ -365,20 +363,21 @@ fun RecurringScreen(
                             expanded = showFrequencyMenu,
                             onDismissRequest = { showFrequencyMenu = false }
                         ) {
-                            Frequency.entries.forEach { freq ->
-                                DropdownMenuItem(
-                                    text = { Text(freq.name.lowercase().replaceFirstChar { it.uppercase() }) },
-                                    onClick = { viewModel.onFrequencyChange(freq); showFrequencyMenu = false }
-                                )
-                            }
+                            DropdownMenuItem(
+                                text = { Text(strings.weeklyLabel) },
+                                onClick = { viewModel.onFrequencyChange(Frequency.WEEKLY); showFrequencyMenu = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(strings.monthlyLabel) },
+                                onClick = { viewModel.onFrequencyChange(Frequency.MONTHLY); showFrequencyMenu = false }
+                            )
                         }
                     }
 
-                    // Day picker — depends on frequency
                     if (frequency == Frequency.WEEKLY) {
                         Column {
                             Text(
-                                "Day of week",
+                                strings.dayOfWeekLabel,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(bottom = 6.dp)
@@ -387,7 +386,7 @@ fun RecurringScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                DAY_LABELS.forEachIndexed { index, dayLabel ->
+                                strings.dayLabels.forEachIndexed { index, dayLabel ->
                                     val dayNum = index + 1
                                     val selected = dayOfWeek == dayNum
                                     Box(
@@ -416,9 +415,9 @@ fun RecurringScreen(
                     } else {
                         Box {
                             OutlinedTextField(
-                                value = "Day $dayOfMonth",
+                                value = strings.dayN(dayOfMonth),
                                 onValueChange = {},
-                                label = { Text("Day of month") },
+                                label = { Text(strings.dayOfMonthLabel) },
                                 readOnly = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 trailingIcon = { Text("▼") }
@@ -432,7 +431,7 @@ fun RecurringScreen(
                             ) {
                                 (1..31).forEach { day ->
                                     DropdownMenuItem(
-                                        text = { Text("Day $day") },
+                                        text = { Text(strings.dayN(day)) },
                                         onClick = { viewModel.onDayOfMonthChange(day); showDayOfMonthMenu = false }
                                     )
                                 }
@@ -440,13 +439,12 @@ fun RecurringScreen(
                         }
                     }
 
-                    // End date
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("End date", style = MaterialTheme.typography.bodyMedium)
+                        Text(strings.endDate, style = MaterialTheme.typography.bodyMedium)
                         Switch(
                             checked = hasEndDate,
                             onCheckedChange = { viewModel.onHasEndDateChange(it) }
@@ -455,9 +453,9 @@ fun RecurringScreen(
                     if (hasEndDate) {
                         Box {
                             OutlinedTextField(
-                                value = dateFormatter.format(Date(endDate)),
+                                value = dateFormatter.format(Date(endDate)).replaceFirstChar { it.uppercaseChar() },
                                 onValueChange = {},
-                                label = { Text("End date") },
+                                label = { Text(strings.endDate) },
                                 readOnly = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 trailingIcon = {
@@ -478,7 +476,7 @@ fun RecurringScreen(
                         shape = RoundedCornerShape(8.dp),
                         enabled = amount.isNotEmpty() && label.isNotEmpty()
                     ) {
-                        Text("Add Recurring", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                        Text(strings.addRecurring, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                     }
                 }
             }
@@ -495,6 +493,7 @@ fun RecurringSummaryCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
+    val strings = LocalAppStrings.current
     Surface(
         modifier = modifier
             .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.medium)
@@ -519,7 +518,7 @@ fun RecurringSummaryCard(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "tap to view →",
+                text = strings.tapToView,
                 style = MaterialTheme.typography.labelSmall,
                 color = color.copy(alpha = 0.5f)
             )
@@ -566,20 +565,22 @@ fun SwipeToDeleteRecurringItem(
 
 @Composable
 fun RecurringItem(recurring: RecurringTransaction, currencyInfo: CurrencyInfo = EUR_DEFAULT, onDelete: () -> Unit) {
+    val strings = LocalAppStrings.current
+    val endDateFormatter = remember(strings.locale) { SimpleDateFormat("MMM yyyy", strings.locale) }
     val subtitle = buildString {
         when (recurring.frequency) {
             Frequency.WEEKLY -> {
-                append("Weekly")
-                recurring.dayOfWeek?.let { append(" (${DAY_LABELS[it - 1]})") }
+                append(strings.weeklyLabel)
+                recurring.dayOfWeek?.let { append(" (${strings.dayLabels[it - 1]})") }
             }
             Frequency.MONTHLY -> {
-                append("Monthly")
-                recurring.dayOfMonth?.let { append(" (day $it)") }
+                append(strings.monthlyLabel)
+                recurring.dayOfMonth?.let { append(" (${strings.dayInSubtitle(it)})") }
             }
         }
         append(" • ${recurring.category}")
         recurring.endDate?.let {
-            append(" · until ${SimpleDateFormat("MMM yyyy", Locale.getDefault()).format(Date(it))}")
+            append(" · until ${endDateFormatter.format(Date(it))}")
         }
     }
 

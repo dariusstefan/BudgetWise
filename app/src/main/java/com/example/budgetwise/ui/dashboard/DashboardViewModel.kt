@@ -32,8 +32,7 @@ class DashboardViewModel(
     private val _selectedMonth = MutableStateFlow(Calendar.getInstance())
     val selectedMonth: StateFlow<Calendar> = _selectedMonth
 
-    private val monthFormatter = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
-    private val monthIdFormatter = SimpleDateFormat("yyyy-MM", Locale.getDefault())
+    private val monthIdFormatter = SimpleDateFormat("yyyy-MM", Locale.US)
 
     private val _currencyInfo = MutableStateFlow(EUR_DEFAULT)
     val currencyInfo: StateFlow<CurrencyInfo> = _currencyInfo
@@ -55,10 +54,6 @@ class DashboardViewModel(
             }
         }
     }
-
-    val selectedMonthText: StateFlow<String> = combine(_selectedMonth) { (calendar) ->
-        monthFormatter.format(calendar.time)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
     private val transactionsForSelectedMonth: StateFlow<List<Transaction>> = _selectedMonth.flatMapLatest { calendar ->
         repository.allTransactions.combine(MutableStateFlow(calendar)) { transactions, cal ->

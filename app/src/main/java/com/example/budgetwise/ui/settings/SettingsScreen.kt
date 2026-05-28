@@ -11,6 +11,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.example.budgetwise.ui.i18n.AppLanguage
+import com.example.budgetwise.ui.i18n.LocalAppStrings
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -19,10 +21,12 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     viewModel: SettingsViewModel
 ) {
+    val strings = LocalAppStrings.current
     val currency by viewModel.selectedCurrency.collectAsState()
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val currencyInfo by viewModel.currencyInfo.collectAsState()
     val defaultBudget by viewModel.defaultBudget.collectAsState()
+    val selectedLanguage by viewModel.selectedLanguage.collectAsState()
 
     var budgetInput by remember { mutableStateOf("") }
     var budgetSaved by remember { mutableStateOf(false) }
@@ -35,7 +39,7 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Settings") })
+            TopAppBar(title = { Text(strings.settingsTitle) })
         }
     ) { padding ->
         Column(
@@ -46,9 +50,9 @@ fun SettingsScreen(
                 .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) },
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Monthly Budget", style = MaterialTheme.typography.titleMedium)
+            Text(strings.monthlyBudget, style = MaterialTheme.typography.titleMedium)
             Text(
-                "Applies to the current month and all future months without a specific override.",
+                strings.budgetDescription,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -56,7 +60,7 @@ fun SettingsScreen(
                 OutlinedTextField(
                     value = budgetInput,
                     onValueChange = { budgetInput = it },
-                    label = { Text("Default Budget") },
+                    label = { Text(strings.defaultBudget) },
                     prefix = { Text(currencyInfo.symbol) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f)
@@ -78,18 +82,18 @@ fun SettingsScreen(
                     },
                     enabled = budgetChanged
                 ) {
-                    Text(if (budgetSaved) "Saved ✓" else "Save")
+                    Text(if (budgetSaved) strings.savedCheckmark else strings.save)
                 }
             }
 
             HorizontalDivider()
 
-            Text("Display Currency", style = MaterialTheme.typography.titleMedium)
+            Text(strings.displayCurrency, style = MaterialTheme.typography.titleMedium)
             var showCurrencyMenu by remember { mutableStateOf(false) }
             val currencies = listOf("EUR", "USD", "GBP", "RON")
             Box {
                 OutlinedButton(onClick = { showCurrencyMenu = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Selected: $currency")
+                    Text("${strings.selectedPrefix}$currency")
                 }
                 DropdownMenu(expanded = showCurrencyMenu, onDismissRequest = { showCurrencyMenu = false }) {
                     currencies.forEach { curr ->
@@ -111,8 +115,29 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Dark Mode", style = MaterialTheme.typography.titleMedium)
+                Text(strings.darkMode, style = MaterialTheme.typography.titleMedium)
                 Switch(checked = isDarkMode, onCheckedChange = { viewModel.setDarkMode(it) })
+            }
+
+            HorizontalDivider()
+
+            Text(strings.language, style = MaterialTheme.typography.titleMedium)
+            var showLanguageMenu by remember { mutableStateOf(false) }
+            Box {
+                OutlinedButton(onClick = { showLanguageMenu = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(selectedLanguage.displayName)
+                }
+                DropdownMenu(expanded = showLanguageMenu, onDismissRequest = { showLanguageMenu = false }) {
+                    AppLanguage.entries.forEach { lang ->
+                        DropdownMenuItem(
+                            text = { Text(lang.displayName) },
+                            onClick = {
+                                viewModel.setLanguage(lang)
+                                showLanguageMenu = false
+                            }
+                        )
+                    }
+                }
             }
         }
     }
