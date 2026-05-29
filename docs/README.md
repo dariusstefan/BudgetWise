@@ -30,6 +30,19 @@
 
 ---
 
+## ⭐ Bonus Requirements Implemented
+
+| Requirement | Implementation |
+|-------------|---------------|
+| **Using a database (SQLite / Room)** | All transactions, recurring entries and monthly budgets are persisted in SQLite via Room with KSP; all DAO queries return `Flow` for reactive updates |
+| **Input sanitization for database storage** | `InputSanitizer` utility strips HTML/script tags and trims whitespace from all user-entered text before it reaches the DAO, preventing SQLite injection |
+| **Settings screen (colors, language)** | Settings screen lets users pick display currency (EUR/USD/GBP/RON/JPY), toggle dark/light theme, and select language; all choices are persisted via Jetpack DataStore |
+| **Unit testing** | JUnit 4 test suite with 5 test classes: `BudgetRepositoryTest`, `CurrencyInfoTest`, `RecurringUtilsTest`, `InputSanitizerTest`, `CategoryEmojiTest` |
+| **Code readability, modularization, clean code** | MVVM architecture with clear layer separation: `data/` (Room entities, DAOs, Retrofit, Repository, Preferences), `util/` (InputSanitizer, RecurringUtils, CurrencyUtils), `ui/` (one package per screen with Screen + ViewModel) |
+| **Coroutines / Dispatcher** | All async work uses Kotlin Coroutines; ViewModels use `viewModelScope.launch`, Room DAOs expose `Flow`, DataStore emits `Flow`, and `lifecycleScope.launch` triggers recurring-transaction processing on startup |
+
+---
+
 ## 🏗️ Architecture & Tech Stack
 
 | Layer | Technology |
